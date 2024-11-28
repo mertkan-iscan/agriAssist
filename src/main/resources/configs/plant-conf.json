@@ -1,0 +1,23 @@
+[
+  {
+    "plantType": "LETTUCE",
+    "rootZoneDepth": 0.3,
+    "allowableDepletion": 0.3,
+    "kcValues": {
+      "kcInit": 0.6,
+      "kcMid": 1.05,
+      "kcLate": 0.95
+    }
+  },
+
+  {
+    "plantType": "TOMATO",
+    "rootZoneDepth": 0.3,
+    "allowableDepletion": 0.3,
+    "kcValues": {
+      "kcInit": 0.6,
+      "kcMid": 1.05,
+      "kcLate": 0.95
+    }
+  }
+]

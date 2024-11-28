@@ -1,0 +1,37 @@
+[
+  {
+    "type": "weather_sensor",
+    "expectedDataTypes": [
+      "weather_temp",
+      "weather_hum"
+    ]
+  },
+  {
+    "type": "weather_sensor",
+    "expectedDataTypes": [
+      "weather_temp",
+      "weather_hum"
+    ]
+  },
+  {
+    "type": "multi_soil_mois",
+    "expectedDataTypes": [
+      "depth_1",
+      "depth_2",
+      "depth_3",
+      "depth_4"
+    ]
+  },
+  {
+    "type": "multi_soil_mois_temp_weather",
+    "expectedDataTypes": [
+      "depth_1",
+      "depth_2",
+      "depth_3",
+      "depth_4",
+      "weather_temp",
+      "weather_hum",
+      "soil_temp"
+    ]
+  }
+]

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Plant</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+
+    <script src="/js/addPlant.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+<div class="container mt-4">
+    <h2>Add New Plant</h2>
+    <form id="plantForm">
+        <input type="hidden" id="fieldID" th:value="${fieldID}">
+
+        <div class="form-group">
+            <label for="plantType">Plant Type</label>
+            <select id="plantType" class="form-control">
+                <option value="TOMATO">TOMATO</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="plantSowDate">Plant Sow Date</label>
+            <input type="datetime-local" id="plantSowDate" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label for="plantStage">Plant Stage</label>
+            <select id="plantStage" class="form-control">
+                <option value="EARLY_GROWTH">Early Growth</option>
+                <option value="VEGETATIVE">Vegetative</option>
+                <option value="FLOWERING">Flowering</option>
+                <option value="POLLINATION">Pollination</option>
+                <option value="FRUIT_FORMATION">Fruit Formation</option>
+                <option value="FRUIT_RIPENING">Fruit Ripening</option>
+            </select>
+        </div>
+
+        <button type="button" class="btn btn-primary" onclick="addPlant()">Add Plant</button>
+        <a th:href="@{/fields}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+</body>
+</html>
