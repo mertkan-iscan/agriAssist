@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Appenders>
         <!-- Console Appender: Logların terminale yazdırılmasını sağlar -->
@@ -6,14 +5,13 @@
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
     </Appenders>
-
     <Loggers>
         <!-- Root Logger: Tüm log seviyeleri için geçerli olan ayarlar -->
         <Root level="info">
             <AppenderRef ref="Console"/>
         </Root>
 
-        <!-- Spesifik Logger tanımları (Opsiyonel) -->
+        <!-- Spesifik Logger tanımları -->
         <Logger name="io.mertkaniscan.automation_engine" level="debug" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
