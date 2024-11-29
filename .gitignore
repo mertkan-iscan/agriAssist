@@ -33,3 +33,4 @@ build/
 
 /myenv
 src/main/resources/plant_stage_detection/*.pth
+src/main/resources/application.properties
