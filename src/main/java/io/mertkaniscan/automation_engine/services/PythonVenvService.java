@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -14,7 +15,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,9 +31,11 @@ public class PythonVenvService {
     private Process pythonProcess;
 
     // Directory for creating the Python virtual environment
-    private final String venvDirectory = "myenv";
+    @Value("${venv.directory}")
+    private String venvDirectory;
     private final String requirementsFile = "src/main/resources/python_module_requirements.txt";
     private final String pythonScript = "src/main/java/io/mertkaniscan/automation_engine/python_scripts/main.py";
+
 
     @PostConstruct
     public void initializePythonEnvironment() {
@@ -119,31 +121,35 @@ public class PythonVenvService {
         }
 
         String os = System.getProperty("os.name").toLowerCase();
-        String pipPath = os.contains("win")
-                ? venvDirectory + "\\Scripts\\pip.exe"
-                : venvDirectory + "/bin/pip";
+        String[] installCommandBase;
+
+        if (os.contains("win")) {
+            installCommandBase = new String[]{"cmd.exe", "/c", venvDirectory + "\\Scripts\\pip install"};
+        } else {
+            installCommandBase = new String[]{"/bin/bash", "-c", venvDirectory + "/bin/pip install"};
+        }
 
         try {
-            // Read dependencies from requirements.txt
+            // Read requirements.txt file
             List<String> dependencies = Files.readAllLines(Paths.get(requirementsFile));
 
             for (String dependency : dependencies) {
                 if (dependency.trim().isEmpty() || dependency.startsWith("#")) {
-                    continue; // Skip empty or comment lines
+                    // Skip empty or comment lines
+                    continue;
                 }
 
-                List<String> installCommand = new ArrayList<>();
-                installCommand.add(pipPath);
-                installCommand.add("install");
-                installCommand.add(dependency);
+                // Create install command for each dependency
+                String[] installCommand = new String[installCommandBase.length + 1];
+                System.arraycopy(installCommandBase, 0, installCommand, 0, installCommandBase.length);
+                installCommand[installCommandBase.length] = dependency;
 
+                // Start the installation process
                 logger.info("Installing: " + dependency);
+                ProcessBuilder installProcess = new ProcessBuilder(installCommand);
+                Process process = installProcess.start();
 
-                ProcessBuilder processBuilder = new ProcessBuilder(installCommand);
-                processBuilder.redirectErrorStream(true); // Merge error stream with output stream
-                Process process = processBuilder.start();
-
-                // Capture and log output
+                // Log the output of the installation
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
@@ -151,13 +157,15 @@ public class PythonVenvService {
                     }
                 }
 
+                // Wait for installation to complete
                 int exitCode = process.waitFor();
                 if (exitCode == 0) {
                     logger.info("Successfully installed: " + dependency);
                 } else {
-                    logger.error("Error occurred during installation of: " + dependency + ". Exit code: " + exitCode);
+                    logger.error("Error occurred during installation of: " + dependency);
                 }
             }
+
         } catch (IOException | InterruptedException e) {
             logger.error("Error installing dependencies", e);
         }
