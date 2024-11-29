@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PythonVenvService {
@@ -103,7 +104,7 @@ public class PythonVenvService {
 
     public void installDependencies(String requirementsFile) {
         if (!isVenvCreated()) {
-            logger.warn("Virtual environment not found at {}. Please create it first.", venvDirectory);
+            logger.warn("Virtual environment not found. Please create it first.");
             return;
         }
 
@@ -126,18 +127,16 @@ public class PythonVenvService {
                 processBuilder.redirectErrorStream(true);
                 Process process = processBuilder.start();
 
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        logger.debug("Pip output: {}", line);
-                    }
-                }
+                // Capture both stdout and stderr
+                String output = new BufferedReader(new InputStreamReader(process.getInputStream()))
+                        .lines()
+                        .collect(Collectors.joining("\n"));
 
                 int exitCode = process.waitFor();
                 if (exitCode == 0) {
-                    logger.info("Successfully installed dependency: {}", dependency);
+                    logger.info("Successfully installed dependency: {}\nOutput:\n{}", dependency, output);
                 } else {
-                    logger.error("Failed to install dependency: {}. Exit code: {}", dependency, exitCode);
+                    logger.error("Failed to install dependency: {}. Exit code: {}.\nOutput:\n{}", dependency, exitCode, output);
                 }
             }
         } catch (IOException | InterruptedException e) {
