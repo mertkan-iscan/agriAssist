@@ -34,6 +34,7 @@ build/
 myenv/
 src/main/resources/plant_stage_detection/*.pth
 src/main/resources/application.properties
+src/main/resources/https/agriassist.jks
 
 # Ignore Python cache files
 __pycache__/
