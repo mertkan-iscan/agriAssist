@@ -32,6 +32,7 @@ build/
 .vscode/
 
 myenv/
+myvenv/
 src/main/resources/plant_stage_detection/*.pth
 src/main/resources/application.properties
 src/main/resources/https/agriassist.jks
