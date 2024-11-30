@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Field List</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <script src="/js/fieldList.js"></script>
+    <script src="/js/deviceJoinRequest.js"></script>
+
+</head>
+<body>
+<div class="container">
+    <h2 class="mt-4">Field List</h2>
+
+    <!-- Add New Field Button -->
+    <a th:href="@{/fields/add}" class="btn btn-primary mb-3">Add New Field</a>
+
+    <!-- Field Table -->
+    <table class="table table-bordered">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Soil Type</th>
+            <th>Plant</th>
+            <th>Creation Date</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- Loop through fields and display them in the table -->
+        <tr th:each="field : ${fields}">
+            <td th:text="${field.fieldID}">1</td>
+            <td th:text="${field.fieldName}">Field A</td>
+            <td th:text="${field.fieldType}">SOILFIELD</td>
+            <td th:text="${field.fieldSoilType}">SANDYLOAM</td>
+            <td th:text="${field.plantInField != null ? field.plantInField.plantType : 'Not Added'}">Corn</td>
+            <td th:text="${#dates.format(field.fieldCreationDate, 'yyyy-MM-dd HH:mm:ss')}">2023-09-30 10:00:00</td>
+            <td>
+                <!-- Field Buttons -->
+                <a th:href="@{api/fields/edit/{id}(id=${field.fieldID})}" class="btn btn-warning btn-sm">Edit</a>
+                <button class="btn btn-danger btn-sm" th:onclick="'deleteField(' + ${field.fieldID} + ')'">Delete</button>
+                <a th:href="@{/fields/{fieldID}/devices(fieldID=${field.fieldID})}" class="btn btn-info btn-sm">Show Devices</a>
+
+                <a href="javascript:void(0);"
+                   class="btn btn-success btn-sm"
+                   th:if="${field.plantInField == null}"
+                   th:href="@{/fields/{fieldID}/add-plant(fieldID=${field.fieldID})}"
+                   th:text="'Add Plant'">
+                    Add Plant
+                </a>
+
+                <a href="javascript:void(0);"
+                   class="btn btn-success btn-sm"
+                   th:if="${field.plantInField != null}"
+                   th:href="@{/fields/{fieldID}/edit-plant(fieldID=${field.fieldID})}"
+                   th:text="'Edit Plant'">
+                    Edit Plant
+                </a>
+
+                <a href="javascript:void(0);"
+                   class="btn btn-primary btn-sm"
+                   th:href="@{/fields/{fieldID}/schedule-irrigation(fieldID=${field.fieldID})}">
+                    Schedule Irrigation
+                </a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Join Request Modal -->
+<div class="modal fade" id="joinRequestModal" tabindex="-1" role="dialog" aria-labelledby="joinRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+
+        <form id="joinRequestForm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Device Join Request</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Hidden input for deviceID -->
+                    <input type="hidden" id="deviceID" name="deviceID">
+
+                    <p>Device ID: <span id="displayDeviceID"></span></p>
+                    <p>Device Type: <span id="deviceType"></span></p>
+
+                    <div class="form-group">
+                        <label for="fieldID">Assign to Field</label>
+                        <select id="fieldID" name="fieldID" class="form-control">
+                            <!-- Options will be populated via JavaScript -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Hidden input to store the action -->
+                <input type="hidden" id="action" name="action" value="">
+
+                <div class="modal-footer">
+                    <button type="button" id="acceptButton" class="btn btn-success">Accept</button>
+                    <button type="button" id="rejectButton" class="btn btn-danger">Reject</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

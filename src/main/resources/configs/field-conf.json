@@ -1,0 +1,34 @@
+[
+    {
+      "soilType": "SANDYLOAM",
+      "fieldCapacity": 0.13,
+      "wiltingPoint": 0.06,
+      "bulkDensity": 1.6,
+      "saturation": 0.45,
+      "infiltrationRate": 12.0
+    },
+    {
+      "soilType": "SILTLOAM",
+      "fieldCapacity": 0.27,
+      "wiltingPoint": 0.12,
+      "bulkDensity": 1.4,
+      "saturation": 0.50,
+      "infiltrationRate": 6.0
+    },
+    {
+      "soilType": "CLAY",
+      "fieldCapacity": 0.40,
+      "wiltingPoint": 0.20,
+      "bulkDensity": 1.3,
+      "saturation": 0.55,
+      "infiltrationRate": 2.0
+    },
+    {
+      "soilType": "LOAM",
+      "fieldCapacity": 0.25,
+      "wiltingPoint": 0.10,
+      "bulkDensity": 1.5,
+      "saturation": 0.48,
+      "infiltrationRate": 8.0
+    }
+]
