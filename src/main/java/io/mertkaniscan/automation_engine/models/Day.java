@@ -21,6 +21,9 @@ public class Day {
     @Column(nullable = false)
     private Timestamp sunset;
 
+    @Column(nullable = false)
+    private BigDecimal vpd; // vapour preassure deficit
+
     // Many-to-One relationship, many days belong to one plant
     @ManyToOne
     @JoinColumn(name = "plantID", nullable = false)
