@@ -2,6 +2,46 @@ package io.mertkaniscan.automation_engine.components;
 
 public class Calculators {
 
+    public static double calculateWeightedAverage(double[] values, double[] weights) {
+        if (values.length != weights.length) {
+            throw new IllegalArgumentException("Values and weights arrays must have the same length.");
+        }
+
+        double weightedSum = 0.0;
+        double totalWeight = 0.0;
+
+        for (int i = 0; i < values.length; i++) {
+            weightedSum += values[i] * weights[i];
+            totalWeight += weights[i];
+        }
+
+        if (totalWeight == 0.0) {
+            throw new IllegalArgumentException("Total weight cannot be zero.");
+        }
+
+        return weightedSum / totalWeight;
+    }
+
+    public static double calculateWeightedETcDual(
+            double[] Kcb, double[] T, double[] humidity, double[] pressure, double[] ghi, double[] dni, double[] dhi,
+            double[] windSpeed, double[] weights, double wettedArea, double totalArea, double FieldCapacity,
+            double WiltingPoint, double Ze, double DePrev, double dailyRainfall, double irrigation, double albedo) {
+
+        // Ağırlıklı ortalamaları hesapla
+        double avgKcb = calculateWeightedAverage(Kcb, weights);
+        double avgT = calculateWeightedAverage(T, weights);
+        double avgHumidity = calculateWeightedAverage(humidity, weights);
+        double avgPressure = calculateWeightedAverage(pressure, weights);
+        double avgGhi = calculateWeightedAverage(ghi, weights);
+        double avgDni = calculateWeightedAverage(dni, weights);
+        double avgDhi = calculateWeightedAverage(dhi, weights);
+        double avgWindSpeed = calculateWeightedAverage(windSpeed, weights);
+
+        // Tam ETc Dual hesaplama
+        return calculateFullETcDual(avgKcb, avgT, avgHumidity, avgPressure, avgGhi, avgDni, avgDhi, avgWindSpeed,
+                wettedArea, totalArea, FieldCapacity, WiltingPoint, Ze, DePrev, dailyRainfall, irrigation, albedo);
+    }
+
     public static double calculateFullETcDual(
             double Kcb, double T, double humidity, double pressure, double ghi, double dni, double dhi, double windSpeed,
             double wettedArea, double totalArea, double FieldCapacity, double WiltingPoint, double Ze, double DePrev,

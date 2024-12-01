@@ -11,7 +11,7 @@ public class Plant {
     public enum PlantType {
         TOMATO,
         LETTUCE,
-        CUCUMBER // Örnek olarak başka bitki türleri eklendi
+        CUCUMBER
     }
 
     public enum PlantStage {
@@ -39,16 +39,16 @@ public class Plant {
     private PlantStage plantStage;
 
     @Column(nullable = false)
-    private double currentRootZoneDepth; // RZD (Root Zone Depth)
+    private double currentRootZoneDepth;
 
     @Column(nullable = false)
-    private double allowableDepletion; // AD (Allowable Depletion)
+    private double allowableDepletion;
 
     @Column(nullable = false, precision = 5, scale = 2)
     private BigDecimal currentCropCoefficient; // Kc
 
     @Column(nullable = false)
-    private int fieldID; // Plant'in bağlı olduğu Field'ın ID'si
+    private int fieldID;
 
     public Plant() {
     }
