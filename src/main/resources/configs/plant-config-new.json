@@ -1,0 +1,34 @@
+[
+  {
+    "plantType": "LETTUCE",
+    "rootZoneDepth": 0.3,
+    "allowableDepletion": 0.3,
+    "kcValues": {
+      "kcInit": 0.7,
+      "kcMid": 1.05,
+      "kcLate": 0.95
+    },
+    "T_Min": 7,
+    "T_Max": 24,
+    "RH_Min": 60,
+    "RH_Max": 80,
+    "VPD_Min": 0.45,
+    "VPD_Max": 0.85
+  },
+  {
+    "plantType": "TOMATO",
+    "rootZoneDepth": 0.6,
+    "allowableDepletion": 0.3,
+    "kcValues": {
+      "kcInit": 0.6,
+      "kcMid": 1.15,
+      "kcLate": 0.8
+    },
+    "T_Min": 18,
+    "T_Max": 30,
+    "RH_Min": 60,
+    "RH_Max": 70,
+    "VPD_Min": 0.5,
+    "VPD_Max": 1.2
+  }
+]
