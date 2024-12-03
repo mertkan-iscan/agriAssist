@@ -3,6 +3,7 @@ package io.mertkaniscan.automation_engine.models;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.List;
 
 @Entity
 @Table(name = "plants")
@@ -49,6 +50,9 @@ public class Plant {
 
     @Column(nullable = false)
     private int fieldID;
+
+    @OneToMany(mappedBy = "plant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Day> days;
 
     public Plant() {
     }
@@ -129,5 +133,13 @@ public class Plant {
 
     public void setFieldID(int fieldID) {
         this.fieldID = fieldID;
+    }
+
+    public List<Day> getDays() {
+        return days;
+    }
+
+    public void setDays(List<Day> days) {
+        this.days = days;
     }
 }

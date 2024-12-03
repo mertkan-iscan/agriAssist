@@ -168,7 +168,7 @@ public class Calculators {
 
     // Calculate Irrigation Interval
     public static double calculateIrrigationInterval(double RAW, double ETc) {
-        return RAW / ETc; // Interval in days
+        return RAW / ETc;
     }
 
     // Calculate Net Radiation (Rn)

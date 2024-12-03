@@ -3,7 +3,6 @@ package io.mertkaniscan.automation_engine.models;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mertkaniscan.automation_engine.components.FetchInterval;
 import jakarta.persistence.*;
