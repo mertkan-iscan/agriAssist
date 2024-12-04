@@ -36,7 +36,7 @@ public class Plant {
     private Timestamp plantSowDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = true)
+    @Column(nullable = false)
     private PlantStage plantStage;
 
     @Column(nullable = false)

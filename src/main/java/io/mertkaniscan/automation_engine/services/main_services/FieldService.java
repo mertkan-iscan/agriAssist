@@ -67,6 +67,10 @@ public class FieldService {
         return deviceService.getDevicesByFieldID(fieldID);
     }
 
+    public Plant getPlantInField(int fieldID) {
+        return deviceService.getDevicesByFieldID(fieldID);
+    }
+
     public void deleteFieldById(int fieldId) {
         fieldRepository.deleteById(fieldId);
     }
@@ -104,7 +108,7 @@ public class FieldService {
                 .collect(Collectors.toList());
     }
 
-    public String controlActuator(int fieldId, int deviceId, int degree) {
+    public String controlActuatorByDegree(int fieldId, int deviceId, int degree) {
         Field field = getFieldById(fieldId);
 
         if (field == null) {
@@ -137,7 +141,6 @@ public class FieldService {
             throw new IllegalArgumentException("Device with ID " + deviceId + " not found in field with ID " + fieldId);
         }
 
-        // Kalibrasyon verilerini al
         Map<Double, Integer> calibrationMap = device.getCalibrationMap();
         Integer degree = calibrationMap.get(flowRate);
 

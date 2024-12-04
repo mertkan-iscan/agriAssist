@@ -131,7 +131,7 @@ public class FieldApiController {
             @RequestParam int degree) {
 
         try {
-            String response = fieldService.controlActuator(fieldID, deviceID, degree);
+            String response = fieldService.controlActuatorByDegree(fieldID, deviceID, degree);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
