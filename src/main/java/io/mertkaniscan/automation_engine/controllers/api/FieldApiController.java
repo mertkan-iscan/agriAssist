@@ -20,17 +20,17 @@ import java.util.List;
 @RequestMapping("/api/fields")
 public class FieldApiController {
 
-    @Autowired
-    private PlantService plantService;
+    private final PlantService plantService;
+    private final FieldService fieldService;
+    private final DeviceService deviceService;
+    private final IrrigationService irrigationService;
 
-    @Autowired
-    private FieldService fieldService;
-
-    @Autowired
-    private DeviceService deviceService;
-
-    @Autowired
-    private IrrigationService irrigationService;
+    public FieldApiController(PlantService plantService, FieldService fieldService, DeviceService deviceService, IrrigationService irrigationService) {
+        this.plantService = plantService;
+        this.fieldService = fieldService;
+        this.deviceService = deviceService;
+        this.irrigationService = irrigationService;
+    }
 
     @PostMapping("/add")
     public ResponseEntity<Field> createField(@RequestBody Field field) {

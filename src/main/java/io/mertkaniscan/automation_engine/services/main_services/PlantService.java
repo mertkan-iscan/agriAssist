@@ -12,11 +12,13 @@ import java.math.BigDecimal;
 @Service
 public class PlantService {
 
-    @Autowired
-    private PlantRepository plantRepository;
+    private final PlantRepository plantRepository;
+    private final ConfigLoader configLoader;
 
-    @Autowired
-    private ConfigLoader configLoader;
+    public PlantService(PlantRepository plantRepository, ConfigLoader configLoader) {
+        this.plantRepository = plantRepository;
+        this.configLoader = configLoader;
+    }
 
     public Plant savePlant(Plant plant) {
 

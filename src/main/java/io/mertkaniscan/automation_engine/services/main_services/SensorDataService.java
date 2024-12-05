@@ -11,25 +11,24 @@ import java.util.List;
 @Service
 public class SensorDataService {
 
-    @Autowired
-    private SensorDataRepository sensorDataRepository;
+    private final SensorDataRepository sensorDataRepository;
 
-    // Save new sensor data
+    public SensorDataService(SensorDataRepository sensorDataRepository) {
+        this.sensorDataRepository = sensorDataRepository;
+    }
+
     public SensorData saveSensorData(SensorData sensorData) {
         return sensorDataRepository.save(sensorData);
     }
 
-    // Get all sensor data
     public List<SensorData> getAllSensorData() {
         return sensorDataRepository.findAll();
     }
 
-    // Get sensor data by ID
     public SensorData getSensorDataById(int id) {
         return sensorDataRepository.findById(id).orElse(null);
     }
 
-    // Update existing sensor data
     public SensorData updateSensorData(int id, SensorData sensorData) {
         SensorData existingSensorData = getSensorDataById(id);
         if (existingSensorData != null) {
@@ -40,7 +39,6 @@ public class SensorDataService {
         return null;
     }
 
-    // Delete sensor data by ID
     public boolean deleteSensorData(int id) {
         if (sensorDataRepository.existsById(id)) {
             sensorDataRepository.deleteById(id);

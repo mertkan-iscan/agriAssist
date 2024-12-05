@@ -30,12 +30,10 @@ public class PythonVenvService {
 
     private Process pythonProcess;
 
-    // Directory for creating the Python virtual environment
     @Value("${venv.directory}")
     private String venvDirectory;
     private final String requirementsFile = "src/main/resources/python_module_requirements.txt";
     private final String pythonScript = "src/main/java/io/mertkaniscan/automation_engine/python_scripts/main.py";
-
 
     @PostConstruct
     public void initializePythonEnvironment() {

@@ -13,8 +13,12 @@ import java.util.Map;
 @Service
 public class DeviceService {
 
+    private final DeviceRepository deviceRepository;
+
     @Autowired
-    private DeviceRepository deviceRepository;
+    public DeviceService(DeviceRepository deviceRepository) {
+        this.deviceRepository = deviceRepository;
+    }
 
     public Device saveDevice(Device device) {
         Device savedDevice = deviceRepository.save(device);
@@ -81,8 +85,6 @@ public class DeviceService {
         calibrationMap.put(flowRate, degree);
         device.setCalibrationMap(calibrationMap);
 
-        deviceRepository.save(device); // Save the updated device
+        deviceRepository.save(device);
     }
-
-
 }

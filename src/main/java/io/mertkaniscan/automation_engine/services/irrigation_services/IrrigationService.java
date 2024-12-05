@@ -23,14 +23,15 @@ import java.util.concurrent.ScheduledFuture;
 public class IrrigationService {
 
     private final ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-
-    @Autowired
-    private IrrigationRepository irrigationRepository;
-
-    @Autowired
-    private ActuatorCommandSocketService actuatorCommandSocketService;
-
     private final Map<Integer, ScheduledFuture<?>> irrigationTasks = new ConcurrentHashMap<>();
+
+    private final IrrigationRepository irrigationRepository;
+    private final ActuatorCommandSocketService actuatorCommandSocketService;
+
+    public IrrigationService(IrrigationRepository irrigationRepository, ActuatorCommandSocketService actuatorCommandSocketService) {
+        this.irrigationRepository = irrigationRepository;
+        this.actuatorCommandSocketService = actuatorCommandSocketService;
+    }
 
     @PostConstruct
     public void init() {

@@ -18,15 +18,15 @@ import java.util.List;
 @RequestMapping("/api/devices")
 public class DeviceApiController {
 
-    @Autowired
-    private DeviceService deviceService;
+    private final DeviceService deviceService;
+    private final DeviceJoinService deviceJoinService;
+    private final ScheduledSensorDataFetcher scheduledSensorDataFetcher;
 
-    @Autowired
-    private DeviceJoinService deviceJoinService;
-
-    @Autowired
-    private ScheduledSensorDataFetcher scheduledSensorDataFetcher;
-
+    public DeviceApiController(DeviceService deviceService, DeviceJoinService deviceJoinService, ScheduledSensorDataFetcher scheduledSensorDataFetcher) {
+        this.deviceService = deviceService;
+        this.deviceJoinService = deviceJoinService;
+        this.scheduledSensorDataFetcher = scheduledSensorDataFetcher;
+    }
 
     @PostMapping("/{deviceID}/join-request")
     public ResponseEntity<String> handleJoinRequest(

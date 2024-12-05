@@ -15,7 +15,11 @@ import java.util.List;
 public class SensorDataViewController {
 
     @Autowired
-    private SensorDataService sensorDataService;
+    private final SensorDataService sensorDataService;
+
+    public SensorDataViewController(SensorDataService sensorDataService) {
+        this.sensorDataService = sensorDataService;
+    }
 
     @GetMapping
     public String listSensorData(Model model) {

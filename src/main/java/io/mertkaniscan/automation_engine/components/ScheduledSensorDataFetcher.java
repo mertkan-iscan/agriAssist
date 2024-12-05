@@ -21,15 +21,16 @@ public class ScheduledSensorDataFetcher {
 
     private static final Logger logger = LogManager.getLogger(ScheduledSensorDataFetcher.class);
 
-    @Autowired
-    @Lazy
-    private DeviceService deviceService;
+    private final DeviceService deviceService;
+    private final SensorDataSocketService sensorDataSocketService;
+    private final SensorDataService sensorDataService;
 
     @Autowired
-    private SensorDataSocketService sensorDataSocketService;
-
-    @Autowired
-    private SensorDataService sensorDataService;
+    public ScheduledSensorDataFetcher(DeviceService deviceService, SensorDataSocketService sensorDataSocketService, SensorDataService sensorDataService){
+        this.deviceService = deviceService;
+        this.sensorDataSocketService = sensorDataSocketService;
+        this.sensorDataService = sensorDataService;
+    }
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     private final Map<Integer, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();

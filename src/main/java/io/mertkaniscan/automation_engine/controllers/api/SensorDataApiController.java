@@ -13,8 +13,11 @@ import java.util.List;
 @RequestMapping("/api/sensor-data")
 public class SensorDataApiController {
 
-    @Autowired
-    private SensorDataService sensorDataService;
+    private final SensorDataService sensorDataService;
+
+    public SensorDataApiController(SensorDataService sensorDataService) {
+        this.sensorDataService = sensorDataService;
+    }
 
     @GetMapping
     public ResponseEntity<List<SensorData>> getAllSensorData() {

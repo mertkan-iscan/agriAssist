@@ -21,23 +21,21 @@ import java.util.stream.Collectors;
 @Service
 public class FieldService {
 
-    @Autowired
-    private FieldRepository fieldRepository;
+    private final FieldRepository fieldRepository;
+    private final DeviceService deviceService;
+    private final SensorDataSocketService sensorDataSocketService;
+    private final WeatherForecastService weatherForecastService;
+    private final ConfigLoader configLoader;
+    private final ActuatorCommandSocketService actuatorCommandSocketService;
 
-    @Autowired
-    private DeviceService deviceService;
-
-    @Autowired
-    private SensorDataSocketService sensorDataSocketService;
-
-    @Autowired
-    private WeatherForecastService weatherForecastService;
-
-    @Autowired
-    private ConfigLoader configLoader;
-
-    @Autowired
-    private ActuatorCommandSocketService actuatorCommandSocketService;
+    public FieldService(FieldRepository fieldRepository, DeviceService deviceService, SensorDataSocketService sensorDataSocketService, WeatherForecastService weatherForecastService, ConfigLoader configLoader, ActuatorCommandSocketService actuatorCommandSocketService) {
+        this.fieldRepository = fieldRepository;
+        this.deviceService = deviceService;
+        this.sensorDataSocketService = sensorDataSocketService;
+        this.weatherForecastService = weatherForecastService;
+        this.configLoader = configLoader;
+        this.actuatorCommandSocketService = actuatorCommandSocketService;
+    }
 
     public Field saveField(Field field) {
 

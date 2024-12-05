@@ -14,11 +14,14 @@ import java.util.List;
 @RequestMapping("/api/irrigation")
 public class IrrigationApiController {
 
-    @Autowired
-    private IrrigationService irrigationService;
+    private final IrrigationService irrigationService;
+    private final FieldService fieldService;
 
-    @Autowired
-    private FieldService fieldService;
+    public IrrigationApiController(IrrigationService irrigationService, FieldService fieldService) {
+        this.irrigationService = irrigationService;
+        this.fieldService = fieldService;
+    }
+
 
     @PostMapping("/{fieldId}/schedule")
     public ResponseEntity<String> scheduleIrrigation(@PathVariable int fieldId, @RequestBody IrrigationRequest request) {

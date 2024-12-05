@@ -32,11 +32,13 @@ public class SensorDataSocketService {
     private static final Logger logger = LogManager.getLogger(SensorDataSocketService.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @Autowired
-    private DeviceService deviceService;
+    private final DeviceService deviceService;
+    private final SensorConfigService sensorConfigService;
 
-    @Autowired
-    private SensorConfigService sensorConfigService;
+    public SensorDataSocketService(DeviceService deviceService, SensorConfigService sensorConfigService) {
+        this.deviceService = deviceService;
+        this.sensorConfigService = sensorConfigService;
+    }
 
     public <T> List<T> fetchSensorData(int deviceID, DataParser<T> parser) throws Exception {
         Device device = deviceService.getDeviceById(deviceID);

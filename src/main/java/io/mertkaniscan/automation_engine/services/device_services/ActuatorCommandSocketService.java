@@ -26,8 +26,11 @@ public class ActuatorCommandSocketService {
     private static final Logger logger = LogManager.getLogger(ActuatorCommandSocketService.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @Autowired
-    private DeviceService deviceService;
+    private final DeviceService deviceService;
+
+    public ActuatorCommandSocketService(DeviceService deviceService) {
+        this.deviceService = deviceService;
+    }
 
     public String sendActuatorCommand(int deviceID, int degree) throws Exception {
         Device device = deviceService.getDeviceById(deviceID);

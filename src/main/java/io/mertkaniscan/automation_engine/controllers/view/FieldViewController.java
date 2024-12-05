@@ -17,11 +17,13 @@ import java.util.stream.Collectors;
 @RequestMapping("/fields")
 public class FieldViewController {
 
-    @Autowired
-    private FieldService fieldService;
+    private final FieldService fieldService;
+    private final DeviceService deviceService;
 
-    @Autowired
-    private DeviceService deviceService;
+    public FieldViewController(FieldService fieldService, DeviceService deviceService) {
+        this.fieldService = fieldService;
+        this.deviceService = deviceService;
+    }
 
     @GetMapping
     public String listFields(Model model) {

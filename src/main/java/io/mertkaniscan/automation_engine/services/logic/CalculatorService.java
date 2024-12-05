@@ -13,12 +13,10 @@ public class CalculatorService {
 
     private DepletionData depletionData;
 
-    // Constructor initializes D to a default value
     public CalculatorService() {
         this.depletionData = new DepletionData(0, LocalDateTime.now());
     }
 
-    // Method to calculate depletion based on FAO formula
     public synchronized void calculateDepletion(double evapotranspiration, double rainfall) {
 
         double previousD = depletionData.getDepletion();

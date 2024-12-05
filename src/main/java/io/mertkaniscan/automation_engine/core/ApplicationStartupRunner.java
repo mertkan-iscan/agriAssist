@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class ApplicationStartupRunner implements ApplicationRunner {
 
-    @Autowired
-    ScheduledSensorDataFetcher scheduledSensorDataFetcher;
+    private final ScheduledSensorDataFetcher scheduledSensorDataFetcher;
 
+    public ApplicationStartupRunner(ScheduledSensorDataFetcher scheduledSensorDataFetcher) {
+        this.scheduledSensorDataFetcher = scheduledSensorDataFetcher;
+    }
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
