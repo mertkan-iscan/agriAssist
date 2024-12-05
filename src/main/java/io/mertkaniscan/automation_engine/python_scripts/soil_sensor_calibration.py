@@ -1,7 +1,7 @@
 import numpy as np
 
 def calibrate_soil_sensor(data):
-    """Toprak sensörü kalibrasyonu için polinom uydurma işlemi."""
+
     sensor_readings = np.array(data['sensor_readings'])
     moisture_percentages = np.array(data['moisture_percentages'])
     sensor_diff = 1023 - sensor_readings
@@ -13,7 +13,7 @@ def calibrate_soil_sensor(data):
     best_aic = np.inf
     best_bic = np.inf
 
-    n = len(sensor_readings)  # Veri sayısı
+    n = len(sensor_readings)
 
     for degree in degrees:
         coefficients = np.polyfit(sensor_diff, moisture_percentages, degree)
@@ -24,12 +24,10 @@ def calibrate_soil_sensor(data):
         ss_tot = np.sum((moisture_percentages - np.mean(moisture_percentages)) ** 2)
         r_squared = 1 - (rss / ss_tot)
 
-        # AIC ve BIC hesaplama
-        k = degree + 1  # Polinom derecesi + sabit terim
+        k = degree + 1
         aic = n * np.log(rss / n) + 2 * k
         bic = n * np.log(rss / n) + k * np.log(n)
 
-        # En iyi modelin seçimi
         if aic < best_aic and bic < best_bic:
             best_r_squared = r_squared
             best_polynomial = coefficients

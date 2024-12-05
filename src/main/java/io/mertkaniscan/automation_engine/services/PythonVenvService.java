@@ -37,14 +37,13 @@ public class PythonVenvService {
 
     @PostConstruct
     public void initializePythonEnvironment() {
-        // Create virtual environment
+
         createVenv();
-        // Install dependencies
+
         installDependencies(requirementsFile);
-        // Run Python script
+
         runPythonScript();
 
-        // Add shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             logger.info("JVM is shutting down, Python script will be stopped.");
             stopPythonScript();

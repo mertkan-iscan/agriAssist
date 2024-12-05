@@ -25,14 +25,15 @@ def monitor_parent():
 
 
 if __name__ == "__main__":
-    # Start the monitor thread
+
     #threading.Thread(target=monitor_parent, daemon=True).start()
 
     server = TCPServer(host='localhost', port=5432)
 
     # Register different tasks
     server.register_handler('soil_sensor_calibration', calibrate_soil_sensor)
+    server.register_handler('soil_water_calculator', soil_water_calculator)
+
     #server.register_handler('flower_stage_detection', detect_flower_stage)
 
-    # Start the server
     server.start()
