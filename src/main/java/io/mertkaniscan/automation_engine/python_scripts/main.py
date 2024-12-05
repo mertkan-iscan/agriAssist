@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     # Register different tasks
     server.register_handler('soil_sensor_calibration', calibrate_soil_sensor)
-    server.register_handler('flower_stage_detection', detect_flower_stage)
+    #server.register_handler('flower_stage_detection', detect_flower_stage)
 
     # Start the server
     server.start()
