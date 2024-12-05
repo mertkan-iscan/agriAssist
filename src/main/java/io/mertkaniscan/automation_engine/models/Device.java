@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.mertkaniscan.automation_engine.components.FetchInterval;
+import io.mertkaniscan.automation_engine.utils.FetchInterval;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 

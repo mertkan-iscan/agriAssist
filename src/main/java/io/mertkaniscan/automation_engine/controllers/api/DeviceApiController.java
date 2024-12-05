@@ -1,10 +1,9 @@
 package io.mertkaniscan.automation_engine.controllers.api;
 
 
-import io.mertkaniscan.automation_engine.components.FetchInterval;
+import io.mertkaniscan.automation_engine.utils.FetchInterval;
 import io.mertkaniscan.automation_engine.components.ScheduledSensorDataFetcher;
 import io.mertkaniscan.automation_engine.services.device_services.DeviceJoinService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

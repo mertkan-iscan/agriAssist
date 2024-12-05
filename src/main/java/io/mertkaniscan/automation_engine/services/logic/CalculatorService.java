@@ -2,7 +2,7 @@ package io.mertkaniscan.automation_engine.services.logic;
 
 import io.mertkaniscan.automation_engine.models.Day;
 import io.mertkaniscan.automation_engine.models.DepletionData;
-import io.mertkaniscan.automation_engine.components.Calculators;
+import io.mertkaniscan.automation_engine.utils.Calculators;
 import io.mertkaniscan.automation_engine.models.Plant;
 import org.springframework.stereotype.Service;
 

@@ -1,7 +1,7 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
 import io.mertkaniscan.automation_engine.models.Device;
-import io.mertkaniscan.automation_engine.components.FetchInterval;
+import io.mertkaniscan.automation_engine.utils.FetchInterval;
 import io.mertkaniscan.automation_engine.repositories.DeviceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

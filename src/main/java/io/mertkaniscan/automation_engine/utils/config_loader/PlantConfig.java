@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.components.config_loader;
+package io.mertkaniscan.automation_engine.utils.config_loader;
 
 public class PlantConfig {
 

@@ -1,7 +1,7 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
-import io.mertkaniscan.automation_engine.components.config_loader.ConfigLoader;
-import io.mertkaniscan.automation_engine.components.config_loader.FieldConfig;
+import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
+import io.mertkaniscan.automation_engine.utils.config_loader.FieldConfig;
 import io.mertkaniscan.automation_engine.models.*;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataDTO;
 import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
@@ -10,7 +10,6 @@ import io.mertkaniscan.automation_engine.repositories.FieldRepository;
 import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataSocketService;
 import io.mertkaniscan.automation_engine.services.device_services.ActuatorCommandSocketService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;

@@ -1,10 +1,9 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
-import io.mertkaniscan.automation_engine.components.config_loader.ConfigLoader;
-import io.mertkaniscan.automation_engine.components.config_loader.PlantConfig;
+import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
+import io.mertkaniscan.automation_engine.utils.config_loader.PlantConfig;
 import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.repositories.PlantRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

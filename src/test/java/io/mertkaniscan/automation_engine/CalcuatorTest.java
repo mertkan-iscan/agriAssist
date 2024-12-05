@@ -1,6 +1,6 @@
 package io.mertkaniscan.automation_engine;
 
-import static io.mertkaniscan.automation_engine.components.Calculators.calculateFullETcDual;
+import static io.mertkaniscan.automation_engine.utils.Calculators.calculateFullETcDual;
 
 public class CalcuatorTest {
     public static void main(String[] args) {

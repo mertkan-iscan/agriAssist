@@ -1,7 +1,7 @@
 package io.mertkaniscan.automation_engine.services;
 
-import io.mertkaniscan.automation_engine.components.config_loader.ConfigLoader;
-import io.mertkaniscan.automation_engine.components.config_loader.SensorConfig;
+import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
+import io.mertkaniscan.automation_engine.utils.config_loader.SensorConfig;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

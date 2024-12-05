@@ -1,19 +1,12 @@
-package io.mertkaniscan.automation_engine.config;
+package io.mertkaniscan.automation_engine.utils.config_loader;
 
 import java.util.List;
-import jakarta.xml.bind.annotation.*;
 
-@XmlAccessorType(XmlAccessType.FIELD)
-public class SensorTypeConfig {
+public class SensorConfig {
 
-    @XmlElement(name = "type")
     private String type;
-
-    @XmlElementWrapper(name = "expectedDataTypes")
-    @XmlElement(name = "dataType")
     private List<String> expectedDataTypes;
 
-    // Getters and setters
     public String getType() {
         return type;
     }

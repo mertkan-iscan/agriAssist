@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.components;
+package io.mertkaniscan.automation_engine.utils;
 
 public class Calculators {
 
