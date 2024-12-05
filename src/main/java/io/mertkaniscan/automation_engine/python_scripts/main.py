@@ -3,7 +3,6 @@ import threading
 import time
 from tcp_server import TCPServer
 from soil_sensor_calibration import calibrate_soil_sensor
-from flower_stage_detection import detect_flower_stage
 
 def is_process_running(pid):
     """Check if a process with the given PID is running."""
