@@ -13,21 +13,22 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 @Entity
 @Table(name = "devices", uniqueConstraints = @UniqueConstraint(columnNames = "device_ip"))
 public class Device {
 
     public enum DeviceStatus {
         WAITING,
-
         ACTIVE,
         INACTIVE,
-
         RUNNING,
         STOPPED,
-
         ERROR,
     }
+
     @Id
     private int deviceID;
 
@@ -50,7 +51,7 @@ public class Device {
 
     @Lob
     @Column(columnDefinition = "TEXT")
-    private String calibrationData; // Flow rate - degree  data
+    private String calibrationData;
 
     @ManyToOne
     @JoinColumn(name = "fieldID", nullable = false)
@@ -63,6 +64,9 @@ public class Device {
 
     @Column(nullable = false)
     private Timestamp updatedAt;
+
+    @Transient
+    private final Lock lock = new ReentrantLock();
 
     public Device() {
         // No-argument constructor for JPA
@@ -158,6 +162,7 @@ public class Device {
     public boolean isActuator() {
         return this.deviceType.equalsIgnoreCase("actuator");
     }
+
     public String getCalibrationData() {
         return calibrationData;
     }
@@ -168,12 +173,9 @@ public class Device {
 
     @Transient
     public Map<Double, Integer> getCalibrationMap() {
-
         if (calibrationData == null || calibrationData.isEmpty()) {
-            // Eğer calibrationData null veya boş ise, boş bir Map döndür
             return new HashMap<>();
         }
-
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             return objectMapper.readValue(calibrationData, new TypeReference<Map<Double, Integer>>() {});
@@ -190,5 +192,17 @@ public class Device {
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize calibration data for device ID " + this.deviceID, e);
         }
+    }
+
+    public Lock getLock() {
+        return lock;
+    }
+
+    public void lock() {
+        lock.lock();
+    }
+
+    public void unlock() {
+        lock.unlock();
     }
 }

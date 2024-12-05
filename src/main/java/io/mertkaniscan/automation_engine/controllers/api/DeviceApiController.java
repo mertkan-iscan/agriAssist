@@ -27,6 +27,7 @@ public class DeviceApiController {
     @Autowired
     private ScheduledSensorDataFetcher scheduledSensorDataFetcher;
 
+
     @PostMapping("/{deviceID}/join-request")
     public ResponseEntity<String> handleJoinRequest(
             @PathVariable int deviceID,
@@ -49,8 +50,6 @@ public class DeviceApiController {
         }
     }
 
-
-    // Tüm cihazları getir
     @GetMapping
     public ResponseEntity<List<Device>> getAllDevices() {
         List<Device> devices = deviceService.getAllDevices();
@@ -69,14 +68,12 @@ public class DeviceApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedDevice);
     }
 
-    // Cihaz güncelle
     @PutMapping("/{id}")
     public ResponseEntity<Device> updateDevice(@PathVariable int id, @RequestBody Device device) {
         Device updatedDevice = deviceService.updateDevice(id, device);
         return updatedDevice != null ? ResponseEntity.ok(updatedDevice) : ResponseEntity.notFound().build();
     }
 
-    // Cihaz sil
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDevice(@PathVariable int id) {
         boolean isDeleted = deviceService.deleteDevice(id);

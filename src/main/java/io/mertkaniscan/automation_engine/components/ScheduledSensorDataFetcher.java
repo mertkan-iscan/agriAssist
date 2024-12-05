@@ -42,36 +42,30 @@ public class ScheduledSensorDataFetcher {
         }
     }
 
-    // Schedule fetching task for each device based on its interval
     public void scheduleDeviceTask(Device device) {
-        FetchInterval interval = device.getFetchInterval() != null ? device.getFetchInterval() : FetchInterval.ONE_MINUTE; // Default to 1 minute if not set
+        FetchInterval interval = device.getFetchInterval() != null ? device.getFetchInterval() : FetchInterval.ONE_MINUTE;
 
-        // Cancel the existing task if it exists
         cancelExistingTask(device.getDeviceID());
 
-        // Schedule the new task
         ScheduledFuture<?> scheduledTask = scheduler.scheduleAtFixedRate(() -> fetchSensorDataForDevice(device), 0, interval.toMilliseconds(), TimeUnit.MILLISECONDS);
         scheduledTasks.put(device.getDeviceID(), scheduledTask);
     }
 
-    // Method to fetch sensor data for a specific device
     private void fetchSensorDataForDevice(Device device) {
         if (device.isSensor()) {
             try {
                 List<SensorData> sensorDataList = sensorDataSocketService.fetchSensorData(device.getDeviceID());
 
-                // Save all valid SensorData objects
                 for (SensorData sensorData : sensorDataList) {
                     sensorDataService.saveSensorData(sensorData);
                 }
 
-                // If data is successfully fetched, mark the device as Active (if not already)
                 if (!sensorDataList.isEmpty()) {
                     logger.info("Sensor data fetched and saved for device {}.", device.getDeviceID());
 
                     if (!"ACTIVE".equals(device.getDeviceStatus())) {
                         device.setDeviceStatus(Device.DeviceStatus.ACTIVE);
-                        deviceService.updateDevice(device.getDeviceID(), device);  // Update device status in DB
+                        deviceService.updateDevice(device.getDeviceID(), device);
                     }
                 } else {
                     logger.warn("No valid sensor data received from device {}.", device.getDeviceID());
@@ -83,13 +77,12 @@ public class ScheduledSensorDataFetcher {
                 // If the sensor data can't be fetched, mark the device as inactive
                 if (!"INACTIVE".equals(device.getDeviceStatus())) {
                     device.setDeviceStatus(Device.DeviceStatus.INACTIVE);
-                    deviceService.updateDevice(device.getDeviceID(), device);  // Update device status in DB
+                    deviceService.updateDevice(device.getDeviceID(), device);
                 }
             }
         }
     }
 
-    // Method to cancel an existing task for a device
     private void cancelExistingTask(int deviceID) {
         ScheduledFuture<?> scheduledTask = scheduledTasks.get(deviceID);
         if (scheduledTask != null && !scheduledTask.isCancelled()) {
@@ -98,13 +91,12 @@ public class ScheduledSensorDataFetcher {
         }
     }
 
-    // Reschedule the fetching task when the interval is updated
     public void rescheduleDeviceTask(int deviceID, FetchInterval newInterval) {
         // Fetch the device and update its interval
         Device device = deviceService.getDeviceById(deviceID);
         if (device != null) {
             device.setFetchInterval(newInterval);
-            scheduleDeviceTask(device); // Reschedule the task with the new interval
+            scheduleDeviceTask(device);
         }
     }
 }

@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
-
 @Service
 public class ActuatorCommandSocketService {
 
@@ -41,6 +40,17 @@ public class ActuatorCommandSocketService {
             throw new Exception("Device with ID " + deviceID + " is not an actuator device.");
         }
 
+        logger.info("Locking device with ID: {}", device.getDeviceID());
+        device.lock();
+        try {
+            return communicateWithActuator(device, degree);
+        } finally {
+            logger.info("Unlocking device with ID: {}", device.getDeviceID());
+            device.unlock();
+        }
+    }
+
+    private String communicateWithActuator(Device device, int degree) throws Exception {
         String deviceIp = device.getDeviceIp();
 
         Callable<String> sendCommandTask = () -> {
@@ -56,7 +66,7 @@ public class ActuatorCommandSocketService {
                 String responseJson = in.readLine();
 
                 if (responseJson == null || responseJson.isEmpty()) {
-                    throw new Exception("Empty response received from actuator with ID: " + deviceID);
+                    throw new Exception("Empty response received from actuator with ID: " + device.getDeviceID());
                 }
 
                 // Validate the response
@@ -68,8 +78,8 @@ public class ActuatorCommandSocketService {
                 return responseJson;
 
             } catch (Exception e) {
-                logger.error("Error communicating with actuator ID {}: {}", deviceID, e.getMessage());
-                throw new Exception("Error communicating with actuator ID " + deviceID + ": " + e.getMessage());
+                logger.error("Error communicating with actuator ID {}: {}", device.getDeviceID(), e.getMessage());
+                throw new Exception("Error communicating with actuator ID " + device.getDeviceID() + ": " + e.getMessage());
             }
         };
 
@@ -79,7 +89,7 @@ public class ActuatorCommandSocketService {
             return future.get(10, TimeUnit.SECONDS);
         } catch (Exception e) {
             future.cancel(true); // Cancel the task if it times out
-            throw new Exception("Timeout: No response from actuator within 10 seconds. Device ID: " + deviceID);
+            throw new Exception("Timeout: No response from actuator within 10 seconds. Device ID: " + device.getDeviceID());
         }
     }
 
@@ -107,15 +117,26 @@ public class ActuatorCommandSocketService {
                 throw new Exception("Flow rate " + flowRate + " is not calibrated for actuator ID: " + actuator.getDeviceID());
             }
 
-            // Open the actuator valve to the required degree
-            sendActuatorCommand(actuator.getDeviceID(), degree);
+            logger.info("Locking actuator with ID: {} for opening", actuator.getDeviceID());
+            actuator.lock();
+            try {
+                sendActuatorCommand(actuator.getDeviceID(), degree);
+            } finally {
+                logger.info("Unlocking actuator with ID: {} after opening", actuator.getDeviceID());
+                actuator.unlock();
+            }
 
             // Schedule a task to close the actuator after the specified duration
             scheduler.schedule(() -> {
+                logger.info("Locking actuator with ID: {} for closing", actuator.getDeviceID());
+                actuator.lock();
                 try {
                     sendActuatorCommand(actuator.getDeviceID(), 0); // Close the valve
                 } catch (Exception e) {
                     logger.error("Error closing actuator ID {}: {}", actuator.getDeviceID(), e.getMessage());
+                } finally {
+                    logger.info("Unlocking actuator with ID: {} after closing", actuator.getDeviceID());
+                    actuator.unlock();
                 }
             }, duration, TimeUnit.SECONDS);
         }
