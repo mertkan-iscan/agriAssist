@@ -35,7 +35,7 @@ myenv/
 myvenv/
 src/main/resources/plant_stage_detection/*.pth
 src/main/resources/application.properties
-src/main/resources/https/agriassist.jks
+#src/main/resources/https/agriassist.jks
 
 bfg-1.14.0.jar
 
