@@ -37,7 +37,6 @@ public class DailyTask {
 
     public void executeDailyTask(int fieldID) {
 
-        // fetch the plant associated with the field
         Field field = fieldService.getFieldById(fieldID);
         Plant plant = field.getPlantInField();
 
@@ -45,17 +44,13 @@ public class DailyTask {
             throw new RuntimeException("No plant found for field ID: " + fieldID);
         }
 
-        // create or fetch the Day object for today
         Day today = getOrCreateDay(plant);
 
-        // fetch sensor data for this field
         List<SensorDataDTO> sensorDataList = fieldService.getSensorDataValueByModel(fieldID, "multi_soil_mois_temp_weather");
 
-        //make api calls
         WeatherResponse weatherResponse = fieldService.getWeatherDataByFieldId(fieldID);
         SolarResponse solarResponse = fieldService.getSolarDataByFieldId(fieldID, currentTime);
 
-        //fill every hour
         for (int hour = 0; hour < 24; hour++) {
 
             Hour hourObj = new Hour();
