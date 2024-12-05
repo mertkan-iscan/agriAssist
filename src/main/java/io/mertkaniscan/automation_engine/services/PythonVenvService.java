@@ -119,49 +119,43 @@ public class PythonVenvService {
         }
 
         String os = System.getProperty("os.name").toLowerCase();
-        String[] installCommandBase;
+        String[] installCommand;
 
         if (os.contains("win")) {
-            installCommandBase = new String[]{"cmd.exe", "/c", venvDirectory + "\\Scripts\\pip install"};
+            installCommand = new String[]{
+                    venvDirectory + "\\Scripts\\pip",
+                    "install",
+                    "-r",
+                    requirementsFile
+            };
         } else {
-            installCommandBase = new String[]{"/bin/bash", "-c", venvDirectory + "/bin/sudo pip install"};
+            installCommand = new String[]{
+                    venvDirectory + "/bin/pip",
+                    "install",
+                    "-r",
+                    requirementsFile
+            };
         }
 
         try {
-            // Read requirements.txt file
-            List<String> dependencies = Files.readAllLines(Paths.get(requirementsFile));
+            logger.info("Installing dependencies from requirements file...");
+            ProcessBuilder installProcess = new ProcessBuilder(installCommand);
+            installProcess.redirectErrorStream(true);
+            Process process = installProcess.start();
 
-            for (String dependency : dependencies) {
-                if (dependency.trim().isEmpty() || dependency.startsWith("#")) {
-                    // Skip empty or comment lines
-                    continue;
+            // Capture and log output
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    logger.info(line);
                 }
+            }
 
-                // Create install command for each dependency
-                String[] installCommand = new String[installCommandBase.length + 1];
-                System.arraycopy(installCommandBase, 0, installCommand, 0, installCommandBase.length);
-                installCommand[installCommandBase.length] = dependency;
-
-                // Start the installation process
-                logger.info("Installing: " + dependency);
-                ProcessBuilder installProcess = new ProcessBuilder(installCommand);
-                Process process = installProcess.start();
-
-                // Log the output of the installation
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        logger.info(line);
-                    }
-                }
-
-                // Wait for installation to complete
-                int exitCode = process.waitFor();
-                if (exitCode == 0) {
-                    logger.info("Successfully installed: " + dependency);
-                } else {
-                    logger.error("Error occurred during installation of: " + dependency);
-                }
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                logger.info("Dependencies installed successfully.");
+            } else {
+                logger.error("Failed to install dependencies. Exit code: " + exitCode);
             }
 
         } catch (IOException | InterruptedException e) {
