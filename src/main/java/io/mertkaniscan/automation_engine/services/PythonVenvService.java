@@ -13,7 +13,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.io.DataInputStream;
@@ -258,4 +260,167 @@ public class PythonVenvService {
             }
         }
     }
+
+    public JSONObject sendCalibrationDataToServerNew(
+            String serverHost,
+            int serverPort,
+            double[] sensorReadings,
+            double[] moisturePercentages) {
+
+        try (Socket socket = new Socket()) {
+            // Set connection and response timeouts
+            socket.connect(new InetSocketAddress(serverHost, serverPort), 5000); // Connection timeout: 5 seconds
+            socket.setSoTimeout(5000); // Response timeout: 5 seconds
+
+            // Prepare JSON data
+            JSONObject json = new JSONObject();
+            json.put("task", "soil_sensor_calibration");
+            JSONObject data = new JSONObject();
+            data.put("sensor_readings", new JSONArray(sensorReadings));
+            data.put("moisture_percentages", new JSONArray(moisturePercentages));
+
+            json.put("data", data);
+
+            // Convert JSON to byte array
+            String jsonData = json.toString();
+            byte[] jsonBytes = jsonData.getBytes(StandardCharsets.UTF_8);
+
+            // Send data
+            try (DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream())) {
+                dataOut.writeInt(jsonBytes.length); // Send length
+                dataOut.write(jsonBytes); // Send JSON data
+                dataOut.flush();
+            }
+
+            // Receive response
+            try (DataInputStream dataIn = new DataInputStream(socket.getInputStream())) {
+                int responseLength = dataIn.readInt();
+                if (responseLength <= 0) {
+                    return new JSONObject().put("error", "Invalid response length.");
+                }
+                byte[] responseBytes = new byte[responseLength];
+                dataIn.readFully(responseBytes);
+                String response = new String(responseBytes, StandardCharsets.UTF_8);
+
+                // Parse the response JSON
+                JSONObject responseJson = new JSONObject(response);
+
+                // Check for "status" key and handle accordingly
+                if (responseJson.has("status")) {
+                    String status = responseJson.getString("status");
+                    if ("success".equalsIgnoreCase(status)) {
+                        // Return success response
+                        logger.info("Success: " + responseJson.optString("message", "Operation completed successfully."));
+                    } else if ("error".equalsIgnoreCase(status)) {
+                        // Log and handle error message
+                        logger.error("Error: " + responseJson.optString("message", "Unknown error occurred."));
+                    }
+                } else {
+                    // Handle unexpected response format
+                    logger.error("Invalid response format: Missing 'status' key.");
+                    return new JSONObject().put("error", "Invalid response format: Missing 'status'.");
+                }
+
+                return responseJson; // Return full response JSON
+            }
+
+        } catch (SocketTimeoutException e) {
+            logger.error("Connection timeout", e);
+            return new JSONObject().put("error", "Connection timeout.");
+        } catch (IOException e) {
+            logger.error("I/O error", e);
+            return new JSONObject().put("error", "I/O error.");
+        } catch (Exception e) {
+            logger.error("Unexpected error", e);
+            return new JSONObject().put("error", "Unexpected error.");
+        }
+    }
+
+    public JSONObject sendSoilWaterCalculatorDataToServer(
+            String serverHost,
+            int serverPort,
+            double[][] sensorReadings,
+            double radius,
+            double height,
+            String mode,
+            double[] calibrationCoeffs) {
+
+        try (Socket socket = new Socket()) {
+            // Set connection and response timeouts
+            socket.connect(new InetSocketAddress(serverHost, serverPort), 5000); // Connection timeout: 5 seconds
+            socket.setSoTimeout(5000); // Response timeout: 5 seconds
+
+            // Prepare JSON data
+            JSONObject json = new JSONObject();
+            json.put("task", "soil_water_calculator"); // Task name for server
+            JSONObject data = new JSONObject();
+            data.put("sensor_readings", new JSONArray(sensorReadings));
+            data.put("radius", radius);
+            data.put("height", height);
+            data.put("mode", mode);
+
+            // Include calibration coefficients if provided
+            if (calibrationCoeffs != null && calibrationCoeffs.length > 0) {
+                data.put("calibration_coeffs", new JSONArray(calibrationCoeffs));
+            }
+
+            json.put("data", data);
+
+            // Convert JSON to byte array
+            String jsonData = json.toString();
+            byte[] jsonBytes = jsonData.getBytes(StandardCharsets.UTF_8);
+
+            // Send data
+            try (DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream())) {
+                dataOut.writeInt(jsonBytes.length); // Send length
+                dataOut.write(jsonBytes); // Send JSON data
+                dataOut.flush();
+            }
+
+            // Receive response
+            try (DataInputStream dataIn = new DataInputStream(socket.getInputStream())) {
+                int responseLength = dataIn.readInt();
+                if (responseLength <= 0) {
+                    return new JSONObject().put("error", "Invalid response length.");
+                }
+                byte[] responseBytes = new byte[responseLength];
+                dataIn.readFully(responseBytes);
+                String response = new String(responseBytes, StandardCharsets.UTF_8);
+
+                // Parse the response JSON
+                JSONObject responseJson = new JSONObject(response);
+
+                // Check for "status" key and handle accordingly
+                if (responseJson.has("status")) {
+                    String status = responseJson.getString("status");
+                    if ("success".equalsIgnoreCase(status)) {
+                        // Return success response
+                        logger.info("Success: " + responseJson.optString("message", "Operation completed successfully."));
+                    } else if ("error".equalsIgnoreCase(status)) {
+                        // Log and handle error message
+                        logger.error("Error: " + responseJson.optString("message", "Unknown error occurred."));
+                    }
+                } else {
+                    // Handle unexpected response format
+                    logger.error("Invalid response format: Missing 'status' key.");
+                    return new JSONObject().put("error", "Invalid response format: Missing 'status'.");
+                }
+
+                return responseJson; // Return full response JSON
+            }
+
+        } catch (SocketTimeoutException e) {
+            logger.error("Connection timeout", e);
+            return new JSONObject().put("error", "Connection timeout.");
+        } catch (IOException e) {
+            logger.error("I/O error", e);
+            return new JSONObject().put("error", "I/O error.");
+        } catch (Exception e) {
+            logger.error("Unexpected error", e);
+            return new JSONObject().put("error", "Unexpected error.");
+        }
+    }
+
+
+
 }

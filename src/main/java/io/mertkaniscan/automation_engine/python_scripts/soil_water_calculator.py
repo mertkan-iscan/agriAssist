@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 
-def calculate_soil_water(sensor_readings, radius, height, mode="cylinder"):
+def soil_water_calculator(sensor_readings, radius, height, mode="cylinder", calibration_coeffs=None):
     """
     Calculate the total water content in a soil volume based on sensor readings.
 
@@ -12,6 +12,9 @@ def calculate_soil_water(sensor_readings, radius, height, mode="cylinder"):
         radius (float): Radius of the area (in cm).
         height (float): Height of the area (in cm).
         mode (str): Calculation mode, either "cylinder", "conic", or "sphere".
+        calibration_coeffs (tuple or list, optional): Coefficients for moisture calibration polynomial.
+            Format: (a, b, c, d) for equation: a*x^3 + b*x^2 + c*x + d
+            If None, uses default coefficients.
 
     Returns:
         float: Total water content in the given soil volume (in liters).
@@ -19,17 +22,25 @@ def calculate_soil_water(sensor_readings, radius, height, mode="cylinder"):
     # Convert sensor readings to a DataFrame
     sensor_data = pd.DataFrame(sensor_readings, columns=["distance", "depth", "sensor_value"])
 
-    # Calibration function for soil moisture
-    def calibrate_moisture(sensor_value):
-        return (
-            4.197e-7 * sensor_value**3
-            - 0.0004763 * sensor_value**2
-            + 0.2291 * sensor_value
-            + 2.585
-        )
+    # Calibration function for soil moisture with optional custom coefficients
+    def calibrate_moisture(sensor_value, coeffs=None):
+        # Default coefficients if not provided
+        if coeffs is None:
+            coeffs = (4.197e-7, -0.0004763, 0.2291, 2.585)
+
+        # Unpack coefficients
+        a, b, c, d = coeffs
+
+        # Polynomial calibration
+        return (a * sensor_value**3 +
+                b * sensor_value**2 +
+                c * sensor_value +
+                d)
 
     # Apply calibration to sensor values
-    sensor_data["calibrated_moisture"] = calibrate_moisture(sensor_data["sensor_value"])
+    sensor_data["calibrated_moisture"] = sensor_data["sensor_value"].apply(
+        lambda x: calibrate_moisture(x, calibration_coeffs)
+    )
 
     # Create interpolation grid
     depth_range = np.linspace(sensor_data["depth"].min(), sensor_data["depth"].max(), 50)
@@ -38,7 +49,7 @@ def calculate_soil_water(sensor_readings, radius, height, mode="cylinder"):
 
     # Interpolate calibrated moisture values
     grid_z_calibrated = griddata(
-        points=sensor_data[["distance", "depth"].values],
+        points=sensor_data[["distance", "depth"]].values,
         values=sensor_data["calibrated_moisture"].values,
         xi=(grid_x, grid_y),
         method="cubic"
@@ -61,17 +72,5 @@ def calculate_soil_water(sensor_readings, radius, height, mode="cylinder"):
     soil_density = 1.3  # Typical soil density in g/cm^3
     water_weight = (average_moisture / 100) * soil_density * volume
     total_water_liters = water_weight / 1000  # Convert to liters
-
-    # Plot interpolated moisture distribution
-    plt.figure(figsize=(10, 6))
-    plt.contourf(grid_x, grid_y, grid_z_calibrated, levels=50, cmap="viridis")
-    plt.colorbar(label="Soil Moisture (%)")
-    plt.title("Interpolated Soil Moisture Distribution (%)")
-    plt.gca().invert_yaxis()
-    plt.xlabel("Distance (cm)")
-    plt.ylabel("Depth (cm)")
-    plt.gca().xaxis.tick_top()
-    plt.gca().xaxis.set_label_position('top')
-    plt.show()
 
     return total_water_liters

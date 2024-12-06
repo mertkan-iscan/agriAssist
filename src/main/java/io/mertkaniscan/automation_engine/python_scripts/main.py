@@ -2,7 +2,8 @@ import os
 import threading
 import time
 from tcp_server import TCPServer
-from soil_sensor_calibration import calibrate_soil_sensor
+from soil_sensor_calibrator import soil_sensor_calibrator
+from soil_water_calculator import soil_water_calculator
 
 def is_process_running(pid):
     """Check if a process with the given PID is running."""
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     server = TCPServer(host='localhost', port=5432)
 
     # Register different tasks
-    server.register_handler('soil_sensor_calibration', calibrate_soil_sensor)
+    server.register_handler('soil_sensor_calibrator', soil_sensor_calibrator)
     server.register_handler('soil_water_calculator', soil_water_calculator)
 
     #server.register_handler('flower_stage_detection', detect_flower_stage)
