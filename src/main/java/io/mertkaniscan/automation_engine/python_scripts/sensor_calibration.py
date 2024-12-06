@@ -1,6 +1,6 @@
 import numpy as np
 
-def soil_sensor_calibrator(data):
+def soil_moisture_calibration(data):
     try:
         sensor_readings = np.array(data['sensor_readings'])
         moisture_percentages = np.array(data['moisture_percentages'])
