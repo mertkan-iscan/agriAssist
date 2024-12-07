@@ -4,7 +4,6 @@ import io.mertkaniscan.automation_engine.models.IrrigationRequest;
 import io.mertkaniscan.automation_engine.repositories.IrrigationRepository;
 import io.mertkaniscan.automation_engine.services.device_services.ActuatorCommandSocketService;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -31,6 +30,10 @@ public class IrrigationService {
     public IrrigationService(IrrigationRepository irrigationRepository, ActuatorCommandSocketService actuatorCommandSocketService) {
         this.irrigationRepository = irrigationRepository;
         this.actuatorCommandSocketService = actuatorCommandSocketService;
+    }
+
+    public List<IrrigationRequest> getIrrigationsByFieldId(int fieldID) {
+        return irrigationRepository.findByFieldFieldID(fieldID);
     }
 
     @PostConstruct
@@ -155,5 +158,4 @@ public class IrrigationService {
         // Reschedule the task with the updated details
         scheduleIrrigationTask(existingRequest);
     }
-
 }

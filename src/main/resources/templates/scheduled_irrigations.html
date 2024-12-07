@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Scheduled Irrigations</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <h2 class="mt-4">Scheduled Irrigations for <span th:text="${field.fieldName}"></span></h2>
+
+    <table class="table table-bordered mt-3">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Water Amount</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="irrigation : ${scheduledIrrigations}">
+            <td th:text="${irrigation.id}">1</td>
+
+            <td th:text="${#temporals.format(irrigation.startTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+            <td th:text="${#temporals.format(irrigation.endTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+
+            <td th:text="${irrigation.waterAmount}">10</td>
+            <td th:text="${irrigation.status}">Scheduled</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <a th:href="@{/fields}" class="btn btn-primary">Back to Field List</a>
+</div>
+</body>
+</html>

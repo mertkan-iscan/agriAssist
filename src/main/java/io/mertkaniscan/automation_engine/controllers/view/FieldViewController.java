@@ -2,13 +2,15 @@ package io.mertkaniscan.automation_engine.controllers.view;
 
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.models.Field;
+import io.mertkaniscan.automation_engine.models.IrrigationRequest;
+import io.mertkaniscan.automation_engine.services.irrigation_services.IrrigationService;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,10 +21,12 @@ public class FieldViewController {
 
     private final FieldService fieldService;
     private final DeviceService deviceService;
+    private final IrrigationService irrigationService;
 
-    public FieldViewController(FieldService fieldService, DeviceService deviceService) {
+    public FieldViewController(FieldService fieldService, DeviceService deviceService, IrrigationService irrigationService) {
         this.fieldService = fieldService;
         this.deviceService = deviceService;
+        this.irrigationService = irrigationService;
     }
 
     @GetMapping
@@ -112,6 +116,29 @@ public class FieldViewController {
 
         // Return the Thymeleaf template name for scheduling irrigation
         return "schedule_irrigation";
+    }
+
+    @GetMapping("/{fieldID}/scheduled-irrigations")
+    public String showIrrigations(@PathVariable int fieldID, Model model) {
+        Field field = fieldService.getFieldById(fieldID);
+
+        if (field == null) {
+            model.addAttribute("error", "Field not found with ID: " + fieldID);
+            return "error";
+        }
+
+        List<IrrigationRequest> irrigations = irrigationService.getIrrigationsByFieldId(fieldID);
+
+        // Calculate end time and add formatted fields
+        irrigations.forEach(irrigation -> {
+            LocalDateTime endTime = irrigation.getStartTime().plusMinutes(irrigation.getDuration());
+            irrigation.setFormattedEndTime(endTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        });
+
+        model.addAttribute("field", field);
+        model.addAttribute("irrigations", irrigations);
+
+        return "scheduled_irrigations";
     }
 
 }

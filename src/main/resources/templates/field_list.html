@@ -72,6 +72,12 @@
                    th:href="@{/fields/{fieldID}/schedule-irrigation(fieldID=${field.fieldID})}">
                     Schedule Irrigation
                 </a>
+
+                <a href="javascript:void(0);"
+                   class="btn btn-secondary btn-sm"
+                   th:href="@{/fields/{fieldID}/scheduled-irrigations(fieldID=${field.fieldID})}">
+                    Show Scheduled Irrigations
+                </a>
             </td>
         </tr>
         </tbody>
