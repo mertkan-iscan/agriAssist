@@ -29,6 +29,8 @@ public class PythonVenvService {
 
         createVenv();
 
+        updatePip();
+
         installDependencies(requirementsFile);
 
         runPythonScript();
@@ -99,6 +101,62 @@ public class PythonVenvService {
 
         return new java.io.File(activatePath).exists();
     }
+
+    public void updatePip() {
+        if (!isVenvCreated()) {
+            logger.warn("Virtual environment not found. Please create the virtual environment first.");
+            return;
+        }
+
+        String os = System.getProperty("os.name").toLowerCase();
+        String[] updatePipCommand;
+
+        if (os.contains("win")) {
+            updatePipCommand = new String[]{
+                    venvDirectory + "\\Scripts\\python",
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "pip"
+            };
+        } else {
+            updatePipCommand = new String[]{
+                    venvDirectory + "/bin/python",
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "pip"
+            };
+        }
+
+        try {
+            logger.info("Updating pip to the latest version...");
+            ProcessBuilder updatePipProcess = new ProcessBuilder(updatePipCommand);
+            updatePipProcess.redirectErrorStream(true);
+            Process process = updatePipProcess.start();
+
+            // Capture and log output
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    logger.info(line);
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                logger.info("pip updated successfully.");
+            } else {
+                logger.error("Failed to update pip. Exit code: " + exitCode);
+            }
+
+        } catch (IOException | InterruptedException e) {
+            logger.error("Error updating pip", e);
+        }
+    }
+
 
     public void installDependencies(String requirementsFile) {
         if (!isVenvCreated()) {
