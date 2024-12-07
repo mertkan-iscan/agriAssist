@@ -65,7 +65,10 @@ public class IrrigationService {
         Duration delay = Duration.between(now, request.getStartTime());
 
         if (!delay.isNegative() && !delay.isZero()) {
-            ScheduledFuture<?> task = taskScheduler.schedule(() -> startIrrigation(request), Instant.ofEpochSecond(delay.toMillis()));
+            ScheduledFuture<?> task = taskScheduler.schedule(
+                    () -> startIrrigation(request),
+                    Instant.now().plusMillis(delay.toMillis())
+            );
             irrigationTasks.put(request.getId(), task);
         } else {
             startIrrigation(request);
@@ -74,6 +77,10 @@ public class IrrigationService {
 
     public void startIrrigation(IrrigationRequest request) {
         try {
+
+            request.setStatus(IrrigationRequest.IrrigationStatus.IN_PROGRESS);
+            irrigationRepository.save(request);
+
             int duration = request.getDuration();
             int fieldId = request.getField().getFieldID();
             double flowRate = request.getFlowRate();
@@ -85,6 +92,7 @@ public class IrrigationService {
 
             irrigationTasks.remove(request.getId());
             System.out.println("Irrigation started for field " + fieldId);
+
         } catch (Exception e) {
             request.setStatus(IrrigationRequest.IrrigationStatus.FAILED);
             irrigationRepository.save(request);
