@@ -44,6 +44,10 @@ public class IrrigationRequest {
     @JsonProperty("irrigationDuration")
     private int irrigationDuration; // Duration in minutes
 
+    @Column(name = "end_time", nullable = false)
+    @JsonProperty("endTime")
+    private LocalDateTime endTime; // Calculated end time
+
     // Getters and Setters
     public int getId() {
         return id;
@@ -91,6 +95,11 @@ public class IrrigationRequest {
 
     public void setStartTime(LocalDateTime startTime) {
         this.irrigationTime = startTime;
+
+        // Automatically calculate and set endTime based on startTime and duration
+        if (this.irrigationDuration > 0) {
+            this.endTime = startTime.plusMinutes(this.irrigationDuration);
+        }
     }
 
     public int getDuration() {
@@ -99,5 +108,18 @@ public class IrrigationRequest {
 
     public void setDuration(int duration) {
         this.irrigationDuration = duration;
+
+        // Automatically calculate and set endTime based on startTime and duration
+        if (this.irrigationTime != null) {
+            this.endTime = this.irrigationTime.plusMinutes(duration);
+        }
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
     }
 }
