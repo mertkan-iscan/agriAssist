@@ -16,17 +16,19 @@
             <th>Start Time</th>
             <th>End Time</th>
             <th>Water Amount</th>
+            <th>Flow Rate</th>
+            <th>Duration</th>
             <th>Status</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="irrigation : ${scheduledIrrigations}">
             <td th:text="${irrigation.id}">1</td>
-
-            <td th:text="${#temporals.format(irrigation.startTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
-            <td th:text="${#temporals.format(irrigation.endTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
-
-            <td th:text="${irrigation.waterAmount}">10</td>
+            <td th:text="${#temporals.format(irrigation.irrigationStartTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+            <td th:text="${#temporals.format(irrigation.irrigationEndTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
+            <td th:text="${irrigation.totalWaterAmount}">10</td>
+            <td th:text="${irrigation.flowRate}"></td>
+            <td th:text="${irrigation.irrigationDuration}"></td>
             <td th:text="${irrigation.status}">Scheduled</td>
         </tr>
         </tbody>

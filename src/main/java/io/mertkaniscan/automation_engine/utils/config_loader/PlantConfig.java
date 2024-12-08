@@ -1,17 +1,20 @@
 package io.mertkaniscan.automation_engine.utils.config_loader;
 
+import java.util.List;
+
 public class PlantConfig {
 
-    private String plantType;       // Bitki türü (ör. LETTUCE, TOMATO)
-    private double rootZoneDepth;   // Kök bölgesi derinliği (m)
-    private double allowableDepletion; // Kullanılabilir su kaybı oranı (0-1 arasında)
-    private KcValues kcValues;      // Bitki büyüme evrelerine göre Kc değerleri
+    private String plantType;       // Plant type (e.g., LETTUCE, TOMATO)
+    private double rootZoneDepth;   // Root zone depth (m)
+    private double allowableDepletion; // Allowable depletion rate (0-1)
+    private KcValues kcValues;      // Kc values for different growth stages
+    private List<String> stages;    // List of plant-specific growth stages
 
-    // İç içe geçmiş KcValues sınıfı
+    // Nested KcValues class
     public static class KcValues {
-        private double kcInit;      // Başlangıç evresi için Kc
-        private double kcMid;       // Orta evre için Kc
-        private double kcLate;      // Geç evre için Kc
+        private double kcInit;      // Kc value for initial stage
+        private double kcMid;       // Kc value for mid stage
+        private double kcLate;      // Kc value for late stage
 
         public double getKcInit() {
             return kcInit;
@@ -80,6 +83,14 @@ public class PlantConfig {
         this.kcValues = kcValues;
     }
 
+    public List<String> getStages() {
+        return stages;
+    }
+
+    public void setStages(List<String> stages) {
+        this.stages = stages;
+    }
+
     @Override
     public String toString() {
         return "PlantConfig{" +
@@ -87,6 +98,7 @@ public class PlantConfig {
                 ", rootZoneDepth=" + rootZoneDepth +
                 ", allowableDepletion=" + allowableDepletion +
                 ", kcValues=" + kcValues +
+                ", stages=" + stages +
                 '}';
     }
 }

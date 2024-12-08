@@ -7,9 +7,9 @@
       "kcInit": 0.6,
       "kcMid": 1.05,
       "kcLate": 0.95
-    }
+    },
+    "stages": ["SEEDLING", "VEGETATIVE", "HARVEST"]
   },
-
   {
     "plantType": "TOMATO",
     "rootZoneDepth": 0.3,
@@ -18,6 +18,18 @@
       "kcInit": 0.6,
       "kcMid": 1.05,
       "kcLate": 0.95
-    }
+    },
+    "stages": ["EARLY_GROWTH", "FLOWERING", "FRUITING", "RIPENING"]
+  },
+  {
+    "plantType": "BROCCOLI",
+    "rootZoneDepth": 0.4,
+    "allowableDepletion": 0.4,
+    "kcValues": {
+      "kcInit": 0.7,
+      "kcMid": 1.1,
+      "kcLate": 0.9
+    },
+    "stages": ["SEEDLING", "VEGETATIVE", "HEAD_FORMATION", "HARVEST"]
   }
 ]

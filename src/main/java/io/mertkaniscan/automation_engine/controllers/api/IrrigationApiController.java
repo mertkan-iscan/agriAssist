@@ -4,7 +4,6 @@ import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.IrrigationRequest;
 import io.mertkaniscan.automation_engine.services.irrigation_services.IrrigationService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,20 +25,19 @@ public class IrrigationApiController {
     @PostMapping("/{fieldId}/schedule")
     public ResponseEntity<String> scheduleIrrigation(@PathVariable int fieldId, @RequestBody IrrigationRequest request) {
         try {
-            // Retrieve the field by ID
             Field field = fieldService.getFieldById(fieldId);
 
             if (field == null) {
                 return ResponseEntity.badRequest().body("Field not found with ID: " + fieldId);
             }
 
-            // Attach the field to the irrigation request
             request.setField(field);
+            irrigationService.processIrrigationRequest(request);
 
-            // Schedule the irrigation
-            irrigationService.scheduleIrrigation(request);
             return ResponseEntity.ok("Irrigation scheduled successfully for field ID: " + fieldId);
+
         } catch (Exception e) {
+
             return ResponseEntity.badRequest().body("Error scheduling irrigation: " + e.getMessage());
         }
     }

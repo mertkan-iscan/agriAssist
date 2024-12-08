@@ -10,7 +10,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -119,7 +118,8 @@ public class FieldViewController {
     }
 
     @GetMapping("/{fieldID}/scheduled-irrigations")
-    public String showIrrigations(@PathVariable int fieldID, Model model) {
+    public String showScheduledIrrigations(@PathVariable int fieldID, Model model) {
+        // Retrieve the field
         Field field = fieldService.getFieldById(fieldID);
 
         if (field == null) {
@@ -127,17 +127,16 @@ public class FieldViewController {
             return "error";
         }
 
-        List<IrrigationRequest> irrigations = irrigationService.getIrrigationsByFieldId(fieldID);
+        // Get the list of scheduled irrigations for the field
+        List<IrrigationRequest> scheduledIrrigations = irrigationService.getScheduledIrrigationsByField(fieldID);
 
-        // Calculate end time and add formatted fields
-        irrigations.forEach(irrigation -> {
-            LocalDateTime endTime = irrigation.getStartTime().plusMinutes(irrigation.getDuration());
-            irrigation.setFormattedEndTime(endTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        });
+        if (scheduledIrrigations == null || scheduledIrrigations.isEmpty()) {
+            model.addAttribute("message", "No scheduled irrigations found for this field.");
+        } else {
+            model.addAttribute("scheduledIrrigations", scheduledIrrigations);
+        }
 
         model.addAttribute("field", field);
-        model.addAttribute("irrigations", irrigations);
-
         return "scheduled_irrigations";
     }
 

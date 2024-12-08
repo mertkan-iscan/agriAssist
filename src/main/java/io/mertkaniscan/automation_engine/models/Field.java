@@ -24,10 +24,15 @@ public class Field {
         LOAM
     }
 
+    public enum IrrigationStatus {
+        NOT_IRRIGATING,
+        IRRIGATING
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "fieldid")
-    private int fieldID;
+    private Integer fieldID;
 
     @Column(nullable = false, unique = true)
     private String fieldName;
@@ -41,28 +46,28 @@ public class Field {
     private SoilType fieldSoilType;
 
     @Column(nullable = false)
-    private double fieldCapacity; // FC (Field Capacity)
+    private Double fieldCapacity; // FC (Field Capacity)
 
     @Column(nullable = false)
-    private double wiltingPoint; // WP (Wilting Point)
+    private Double wiltingPoint; // WP (Wilting Point)
 
     @Column(nullable = false)
-    private double bulkDensity; // soil density (g/cm³)
+    private Double bulkDensity; // soil density (g/cm³)
 
     @Column(nullable = false)
-    private double saturation; // Toprağın maksimum su kapasitesi
+    private Double saturation; // Toprağın maksimum su kapasitesi
 
     @Column(nullable = false)
-    private double infiltrationRate; // İnfiltrasyon hızı (mm/saat)
+    private Double infiltrationRate; // İnfiltrasyon hızı (mm/saat)
 
     @Column(nullable = false)
-    private double totalArea; // Toplam alan (m²)
+    private Double totalArea; // Toplam alan (m²)
 
     @Column(nullable = false)
-    private double latitude;
+    private Double latitude;
 
     @Column(nullable = false)
-    private double longitude;
+    private Double longitude;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -71,10 +76,6 @@ public class Field {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "plant_id", referencedColumnName = "plantID")
     private Plant plantInField;
-
-    //@OneToOne(cascade = CascadeType.ALL)
-    //@JoinColumn(name = "hoseID")
-    //private Hose hose;
 
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Device> devices;
@@ -87,9 +88,13 @@ public class Field {
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<IrrigationRequest> irrigationRequests;
 
-    public Field(int fieldID, String fieldName, FieldType fieldType, SoilType fieldSoilType, Plant plantInField,
-                 double fieldCapacity, double wiltingPoint, double bulkDensity, double saturation,
-                 double infiltrationRate, double totalArea, double latitude, double longitude, Timestamp fieldCreationDate) {
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private IrrigationStatus irrigationStatus = IrrigationStatus.NOT_IRRIGATING;
+
+    public Field(Integer fieldID, String fieldName, FieldType fieldType, SoilType fieldSoilType, Plant plantInField,
+                 Double fieldCapacity, Double wiltingPoint, Double bulkDensity, Double saturation,
+                 Double infiltrationRate, Double totalArea, Double latitude, Double longitude, Timestamp fieldCreationDate) {
         this.fieldID = fieldID;
         this.fieldName = fieldName;
         this.fieldType = fieldType;
@@ -110,12 +115,11 @@ public class Field {
     }
 
     // Getters and Setters
-
-    public int getFieldID() {
+    public Integer getFieldID() {
         return fieldID;
     }
 
-    public void setFieldID(int fieldID) {
+    public void setFieldID(Integer fieldID) {
         this.fieldID = fieldID;
     }
 
@@ -143,67 +147,67 @@ public class Field {
         this.fieldSoilType = fieldSoilType;
     }
 
-    public double getFieldCapacity() {
+    public Double getFieldCapacity() {
         return fieldCapacity;
     }
 
-    public void setFieldCapacity(double fieldCapacity) {
+    public void setFieldCapacity(Double fieldCapacity) {
         this.fieldCapacity = fieldCapacity;
     }
 
-    public double getWiltingPoint() {
+    public Double getWiltingPoint() {
         return wiltingPoint;
     }
 
-    public void setWiltingPoint(double wiltingPoint) {
+    public void setWiltingPoint(Double wiltingPoint) {
         this.wiltingPoint = wiltingPoint;
     }
 
-    public double getBulkDensity() {
+    public Double getBulkDensity() {
         return bulkDensity;
     }
 
-    public void setBulkDensity(double bulkDensity) {
+    public void setBulkDensity(Double bulkDensity) {
         this.bulkDensity = bulkDensity;
     }
 
-    public double getSaturation() {
+    public Double getSaturation() {
         return saturation;
     }
 
-    public void setSaturation(double saturation) {
+    public void setSaturation(Double saturation) {
         this.saturation = saturation;
     }
 
-    public double getInfiltrationRate() {
+    public Double getInfiltrationRate() {
         return infiltrationRate;
     }
 
-    public void setInfiltrationRate(double infiltrationRate) {
+    public void setInfiltrationRate(Double infiltrationRate) {
         this.infiltrationRate = infiltrationRate;
     }
 
-    public double getTotalArea() {
+    public Double getTotalArea() {
         return totalArea;
     }
 
-    public void setTotalArea(double totalArea) {
+    public void setTotalArea(Double totalArea) {
         this.totalArea = totalArea;
     }
 
-    public double getLatitude() {
+    public Double getLatitude() {
         return latitude;
     }
 
-    public void setLatitude(double latitude) {
+    public void setLatitude(Double latitude) {
         this.latitude = latitude;
     }
 
-    public double getLongitude() {
+    public Double getLongitude() {
         return longitude;
     }
 
-    public void setLongitude(double longitude) {
+    public void setLongitude(Double longitude) {
         this.longitude = longitude;
     }
 
@@ -245,5 +249,13 @@ public class Field {
 
     public void setSensorData(Set<SensorData> sensorData) {
         this.sensorData = sensorData;
+    }
+
+    public IrrigationStatus getIrrigationStatus() {
+        return irrigationStatus;
+    }
+
+    public void setIrrigationStatus(IrrigationStatus irrigationStatus) {
+        this.irrigationStatus = irrigationStatus;
     }
 }

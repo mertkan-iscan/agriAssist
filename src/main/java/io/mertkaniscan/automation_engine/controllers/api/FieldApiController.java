@@ -8,7 +8,6 @@ import io.mertkaniscan.automation_engine.services.weather_forecast_services.Sola
 import io.mertkaniscan.automation_engine.services.weather_forecast_services.weather_response_obj.WeatherResponse;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import io.mertkaniscan.automation_engine.services.main_services.PlantService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -57,13 +56,27 @@ public class FieldApiController {
     }
 
     @PostMapping("/{fieldID}/add-plant")
-    public ResponseEntity<Plant> addPlantToField(@PathVariable int fieldID, @RequestBody Plant plant) {
+    public ResponseEntity<?> addPlantToField(@PathVariable int fieldID, @RequestBody Plant plant) {
+        // Retrieve the field by ID
+        Field field = fieldService.getFieldById(fieldID);
 
-        // Plant'i kaydet
+        if (field == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Field not found.");
+        }
+
+        // Check if a plant is already assigned to this field
+        if (field.getPlantInField() != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("A plant is already assigned to this field.");
+        }
+
+        // Save the plant
         Plant savedPlant = plantService.savePlant(plant);
 
-        // Field'i güncelle
-        fieldService.updateFieldWithPlant(fieldID, savedPlant);
+        // Update the field with the new plant
+        field.setPlantInField(savedPlant);
+        fieldService.saveField(field);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedPlant);
     }
@@ -151,29 +164,6 @@ public class FieldApiController {
             return ResponseEntity.ok("Calibration data added successfully.");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add calibration data: " + e.getMessage());
-        }
-    }
-
-    @PostMapping("/{fieldID}/schedule-irrigation")
-    public ResponseEntity<String> scheduleIrrigation(
-            @PathVariable int fieldID,
-            @RequestBody IrrigationRequest irrigationRequest) {
-        try {
-            // Retrieve the field
-            Field field = fieldService.getFieldById(fieldID);
-            if (field == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Field not found with ID: " + fieldID);
-            }
-
-            // Attach the field to the irrigation request
-            irrigationRequest.setField(field);
-
-            // Schedule the irrigation
-            irrigationService.scheduleIrrigation(irrigationRequest);
-
-            return ResponseEntity.ok("Irrigation scheduled successfully for field ID: " + fieldID);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to schedule irrigation: " + e.getMessage());
         }
     }
 }

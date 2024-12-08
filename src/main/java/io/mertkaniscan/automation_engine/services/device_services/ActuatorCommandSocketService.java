@@ -9,7 +9,7 @@ import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import static io.mertkaniscan.automation_engine.utils.DeviceJsonMessageFactory.createValveActuatorCommand;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -96,7 +96,7 @@ public class ActuatorCommandSocketService {
         }
     }
 
-    public void startIrrigation(int fieldId, double flowRate, int duration) throws Exception {
+    public void startIrrigation(int fieldId, double flowRate) throws Exception {
         List<Device> actuators = deviceService.getDevicesByFieldID(fieldId).stream()
                 .filter(Device::isActuator)
                 .toList();
@@ -105,20 +105,9 @@ public class ActuatorCommandSocketService {
             throw new Exception("No actuators found for field ID: " + fieldId);
         }
 
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(actuators.size());
-
         for (Device actuator : actuators) {
-            Map<Double, Integer> calibrationMap = actuator.getCalibrationMap();
 
-            if (calibrationMap == null || calibrationMap.isEmpty()) {
-                throw new Exception("Calibration map is missing or empty for actuator ID: " + actuator.getDeviceID());
-            }
-
-            // Find the corresponding degree for the requested flow rate
-            Integer degree = calibrationMap.get(flowRate);
-            if (degree == null) {
-                throw new Exception("Flow rate " + flowRate + " is not calibrated for actuator ID: " + actuator.getDeviceID());
-            }
+            Integer degree = getCalibrationValue(flowRate, actuator);
 
             logger.info("Locking actuator with ID: {} for opening", actuator.getDeviceID());
             actuator.lock();
@@ -128,23 +117,47 @@ public class ActuatorCommandSocketService {
                 logger.info("Unlocking actuator with ID: {} after opening", actuator.getDeviceID());
                 actuator.unlock();
             }
+        }
+    }
 
-            // Schedule a task to close the actuator after the specified duration
-            scheduler.schedule(() -> {
-                logger.info("Locking actuator with ID: {} for closing", actuator.getDeviceID());
-                actuator.lock();
-                try {
-                    sendActuatorCommand(actuator.getDeviceID(), 0); // Close the valve
-                } catch (Exception e) {
-                    logger.error("Error closing actuator ID {}: {}", actuator.getDeviceID(), e.getMessage());
-                } finally {
-                    logger.info("Unlocking actuator with ID: {} after closing", actuator.getDeviceID());
-                    actuator.unlock();
-                }
-            }, duration, TimeUnit.SECONDS);
+    @NotNull
+    private static Integer getCalibrationValue(double flowRate, Device actuator) throws Exception {
+        Map<Double, Integer> calibrationMap = actuator.getCalibrationMap();
+
+        if (calibrationMap == null || calibrationMap.isEmpty()) {
+            throw new Exception("Calibration map is missing or empty for actuator ID: " + actuator.getDeviceID());
         }
 
-        // Optional: Shut down the scheduler gracefully after all tasks are complete
-        scheduler.shutdown();
+        // Find the corresponding degree for the requested flow rate
+        Integer degree = calibrationMap.get(flowRate);
+        if (degree == null) {
+            throw new Exception("Flow rate " + flowRate + " is not calibrated for actuator ID: " + actuator.getDeviceID());
+        }
+        return degree;
+    }
+
+
+    public void stopIrrigation(int fieldId) throws Exception {
+        List<Device> actuators = deviceService.getDevicesByFieldID(fieldId).stream()
+                .filter(Device::isActuator)
+                .toList();
+
+        if (actuators.isEmpty()) {
+            throw new Exception("No actuators found for field ID: " + fieldId);
+        }
+
+        for (Device actuator : actuators) {
+            logger.info("Locking actuator with ID: {} for closing", actuator.getDeviceID());
+            actuator.lock();
+            try {
+                sendActuatorCommand(actuator.getDeviceID(), 0); // Close the valve
+                logger.info("Irrigation stopped for actuator ID: {}", actuator.getDeviceID());
+            } catch (Exception e) {
+                logger.error("Error stopping irrigation for actuator ID {}: {}", actuator.getDeviceID(), e.getMessage());
+                throw new Exception("Failed to stop irrigation for actuator ID: " + actuator.getDeviceID());
+            } finally {
+                actuator.unlock();
+            }
+        }
     }
 }
