@@ -33,5 +33,4 @@ public class PlantApiController {
                 .map(PlantConfig::getStages)
                 .orElseThrow(() -> new RuntimeException("Plant type not found"));
     }
-
 }
