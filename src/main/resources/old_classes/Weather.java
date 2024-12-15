@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.services.weather_forecast_services.weather_response_obj;
+package old_classes;
 
 public class Weather {
 

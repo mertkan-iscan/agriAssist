@@ -21,24 +21,31 @@ public class PythonVenvService {
 
     @Value("${venv.directory}")
     private String venvDirectory;
+
+    @Value("${venv.start}")
+    private boolean venvStart;
+
     private final String requirementsFile = "src/main/resources/python_module_requirements.txt";
     private final String pythonScript = "src/main/java/io/mertkaniscan/automation_engine/python_scripts/main.py";
 
     @PostConstruct
     public void initializePythonEnvironment() {
 
-        createVenv();
+        if (venvStart) {
+            logger.info("venv.start is set to true. Initializing virtual environment and running Python script...");
 
-        updatePip();
+            createVenv();
+            updatePip();
+            installDependencies(requirementsFile);
+            runPythonScript();
 
-        installDependencies(requirementsFile);
-
-        runPythonScript();
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            logger.info("JVM is shutting down, Python script will be stopped.");
-            stopPythonScript();
-        }));
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                logger.info("JVM is shutting down, Python script will be stopped.");
+                stopPythonScript();
+            }));
+        } else {
+            logger.info("venv.start is set to false. Skipping virtual environment initialization.");
+        }
     }
 
     @PreDestroy

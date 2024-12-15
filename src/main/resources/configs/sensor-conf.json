@@ -25,12 +25,14 @@
   {
     "type": "multi_soil_mois_temp_weather",
     "expectedDataTypes": [
-      "depth_1",
-      "depth_2",
-      "depth_3",
-      "depth_4",
-      "depth_5",
-      "depth_6",
+      "depth_1_1",
+      "depth_1_2",
+      "depth_1_3",
+
+      "depth_2_1",
+      "depth_2_2",
+      "depth_2_3",
+
       "weather_temp",
       "weather_hum"
     ]

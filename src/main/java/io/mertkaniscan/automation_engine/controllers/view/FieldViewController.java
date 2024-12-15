@@ -43,9 +43,7 @@ public class FieldViewController {
 
     @PostMapping("/add")
     public String addField(@ModelAttribute Field field) {
-
         fieldService.saveField(field);
-
         return "redirect:/fields";
     }
 

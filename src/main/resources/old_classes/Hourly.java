@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.services.weather_forecast_services.weather_response_obj;
+package old_classes;
 
 import java.util.List;
 
@@ -26,8 +26,6 @@ public class Hourly {
     public double pop;
 
     public Rain rain;
-
-
 
     public long getDt() {
         return dt;

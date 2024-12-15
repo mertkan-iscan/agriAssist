@@ -9,11 +9,9 @@ import io.mertkaniscan.automation_engine.services.SensorConfigService;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.utils.DeviceJsonMessageFactory;
 import io.mertkaniscan.automation_engine.models.Device;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.math.BigDecimal;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,7 +102,9 @@ public class SensorDataSocketService {
     }
 
     private List<SensorData> parseAndValidateSensorData(String sensorDataJson, Device device) throws Exception {
+
         return parseSensorData(sensorDataJson, device, (dataType, dataValue) -> {
+
             SensorData sensorData = new SensorData();
             sensorData.setDataType(dataType);
             sensorData.setDataValue(dataValue);
@@ -134,10 +134,10 @@ public class SensorDataSocketService {
             for (String expectedDataType : expectedDataTypes) {
                 if (jsonObject.has(expectedDataType)) {
                     JsonElement jsonElement = jsonObject.get(expectedDataType);
-                    BigDecimal dataValue;
+                    Double dataValue;
 
                     if (jsonElement.isJsonPrimitive() && jsonElement.getAsJsonPrimitive().isNumber()) {
-                        dataValue = jsonElement.getAsBigDecimal();
+                        dataValue = jsonElement.getAsDouble();
                     } else {
                         logger.warn("Data value for '{}' is not a valid number. Device ID: {}", expectedDataType, device.getDeviceID());
                         continue;
@@ -157,7 +157,7 @@ public class SensorDataSocketService {
         return sensorDataList;
     }
 
-    public Optional<BigDecimal> getDataValueByType(List<SensorDataDTO> sensorDataList, String dataType) {
+    public Optional<Double> getDataValueByType(List<SensorDataDTO> sensorDataList, String dataType) {
         return sensorDataList.stream()
                 .filter(sensorDataDTO -> sensorDataDTO.getDataType().equals(dataType))
                 .map(SensorDataDTO::getDataValue)
@@ -171,6 +171,6 @@ public class SensorDataSocketService {
 
     @FunctionalInterface
     private interface DataFactory<T> {
-        T create(String dataType, BigDecimal dataValue);
+        T create(String dataType, Double dataValue);
     }
 }

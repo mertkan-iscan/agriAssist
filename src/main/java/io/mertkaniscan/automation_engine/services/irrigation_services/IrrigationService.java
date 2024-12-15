@@ -62,7 +62,7 @@ public class IrrigationService {
                 // Adjust requests with a start time in the past
                 if (request.getIrrigationStartTime().isBefore(now)) {
                     System.out.println("Adjusting irrigation request with ID: " + request.getId() + " to start now.");
-                    request.setIrrigationtStartTime(now);
+                    request.setIrrigationStartTime(now);
                     Duration remainingDuration = Duration.between(now, request.getIrrigationEndTime());
                     request.setIrrigationDuration((int) remainingDuration.toMinutes());
                     irrigationRepository.save(request);
@@ -237,7 +237,7 @@ public class IrrigationService {
         existingRequest.setFlowRate(updatedRequest.getFlowRate());
         existingRequest.setTotalWaterAmount(updatedRequest.getTotalWaterAmount());
         existingRequest.setIrrigationDuration(updatedRequest.getIrrigationDuration());
-        existingRequest.setIrrigationtStartTime(updatedRequest.getIrrigationStartTime());
+        existingRequest.setIrrigationStartTime(updatedRequest.getIrrigationStartTime());
         existingRequest.setStatus(updatedRequest.getStatus());
 
         if (updatedRequest.getTotalWaterAmount() > 0 && updatedRequest.getFlowRate() > 0) {

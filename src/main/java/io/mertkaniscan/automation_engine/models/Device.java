@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mertkaniscan.automation_engine.utils.FetchInterval;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.IOException;
@@ -16,6 +18,8 @@ import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "devices", uniqueConstraints = @UniqueConstraint(columnNames = "device_ip"))
 public class Device {
@@ -29,18 +33,22 @@ public class Device {
         ERROR,
     }
 
+    @Setter
     @Id
     private int deviceID;
 
+    @Setter
     @Column(nullable = false, unique = true)
     private String deviceIp;
 
     @Column(nullable = false)
     private String deviceType;
 
+    @Setter
     @Column(nullable = false)
     private String deviceModel;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DeviceStatus deviceStatus;
@@ -55,7 +63,7 @@ public class Device {
 
     @ManyToOne
     @JoinColumn(name = "fieldID", nullable = false)
-    @JsonBackReference
+    @JsonBackReference("field-devices")
     private Field field;
 
     @CreationTimestamp
@@ -91,70 +99,6 @@ public class Device {
         updatedAt = new Timestamp(System.currentTimeMillis());
     }
 
-    public int getDeviceID() {
-        return deviceID;
-    }
-
-    public void setDeviceID(int deviceID) {
-        this.deviceID = deviceID;
-    }
-
-    public String getDeviceIp() {
-        return deviceIp;
-    }
-
-    public void setDeviceIp(String deviceIp) {
-        this.deviceIp = deviceIp;
-    }
-
-    public String getDeviceType() {
-        return deviceType;
-    }
-
-    public void setDeviceType(String deviceType) {
-        this.deviceType = deviceType;
-    }
-
-    public String getDeviceModel() {
-        return deviceModel;
-    }
-
-    public void setDeviceModel(String deviceModel) {
-        this.deviceModel = deviceModel;
-    }
-
-    public DeviceStatus getDeviceStatus() {
-        return deviceStatus;
-    }
-
-    public void setDeviceStatus(DeviceStatus deviceStatus) {
-        this.deviceStatus = deviceStatus;
-    }
-
-    public FetchInterval getFetchInterval() {
-        return fetchInterval;
-    }
-
-    public void setFetchInterval(FetchInterval fetchInterval) {
-        this.fetchInterval = fetchInterval;
-    }
-
-    public Field getField() {
-        return field;
-    }
-
-    public void setField(Field field) {
-        this.field = field;
-    }
-
-    public Timestamp getInstallationDate() {
-        return installationDate;
-    }
-
-    public Timestamp getUpdatedAt() {
-        return updatedAt;
-    }
-
     public boolean isSensor() {
         return this.deviceType.equalsIgnoreCase("sensor");
     }
@@ -163,13 +107,6 @@ public class Device {
         return this.deviceType.equalsIgnoreCase("actuator");
     }
 
-    public String getCalibrationData() {
-        return calibrationData;
-    }
-
-    public void setCalibrationData(String calibrationData) {
-        this.calibrationData = calibrationData;
-    }
 
     @Transient
     public Map<Double, Integer> getCalibrationMap() {
@@ -192,10 +129,6 @@ public class Device {
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize calibration data for device ID " + this.deviceID, e);
         }
-    }
-
-    public Lock getLock() {
-        return lock;
     }
 
     public void lock() {

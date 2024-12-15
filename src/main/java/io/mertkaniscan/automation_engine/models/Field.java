@@ -2,12 +2,16 @@ package io.mertkaniscan.automation_engine.models;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "fields")
 public class Field {
@@ -29,6 +33,7 @@ public class Field {
         IRRIGATING
     }
 
+    // Getters and Setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "fieldid")
@@ -69,6 +74,9 @@ public class Field {
     @Column(nullable = false)
     private Double longitude;
 
+    @Column(nullable = false)
+    private Double elevation;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Timestamp fieldCreationDate;
@@ -77,20 +85,30 @@ public class Field {
     @JoinColumn(name = "plant_id", referencedColumnName = "plantID")
     private Plant plantInField;
 
-    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<Device> devices;
-
-    @JsonManagedReference("field-sensorData")
-    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<SensorData> sensorData;
-
-    @JsonManagedReference("field-irrigationRequest")
-    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<IrrigationRequest> irrigationRequests;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private IrrigationStatus irrigationStatus = IrrigationStatus.NOT_IRRIGATING;
+
+    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("field-devices")
+    private Set<Device> devices;
+
+
+    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("field-sensorData")
+    private Set<SensorData> sensorData;
+
+    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("field-irrigationRequest")
+    private List<IrrigationRequest> irrigationRequests;
+
+    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("field-solarResponses")
+    private Set<SolarResponse> solarResponses;
+
+    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("field-weatherResponses")
+    private Set<WeatherResponse> weatherResponses ;
 
     public Field(Integer fieldID, String fieldName, FieldType fieldType, SoilType fieldSoilType, Plant plantInField,
                  Double fieldCapacity, Double wiltingPoint, Double bulkDensity, Double saturation,
@@ -112,150 +130,6 @@ public class Field {
     }
 
     public Field() {
-    }
-
-    // Getters and Setters
-    public Integer getFieldID() {
-        return fieldID;
-    }
-
-    public void setFieldID(Integer fieldID) {
-        this.fieldID = fieldID;
-    }
-
-    public String getFieldName() {
-        return fieldName;
-    }
-
-    public void setFieldName(String fieldName) {
-        this.fieldName = fieldName;
-    }
-
-    public FieldType getFieldType() {
-        return fieldType;
-    }
-
-    public void setFieldType(FieldType fieldType) {
-        this.fieldType = fieldType;
-    }
-
-    public SoilType getFieldSoilType() {
-        return fieldSoilType;
-    }
-
-    public void setFieldSoilType(SoilType fieldSoilType) {
-        this.fieldSoilType = fieldSoilType;
-    }
-
-    public Double getFieldCapacity() {
-        return fieldCapacity;
-    }
-
-    public void setFieldCapacity(Double fieldCapacity) {
-        this.fieldCapacity = fieldCapacity;
-    }
-
-    public Double getWiltingPoint() {
-        return wiltingPoint;
-    }
-
-    public void setWiltingPoint(Double wiltingPoint) {
-        this.wiltingPoint = wiltingPoint;
-    }
-
-    public Double getBulkDensity() {
-        return bulkDensity;
-    }
-
-    public void setBulkDensity(Double bulkDensity) {
-        this.bulkDensity = bulkDensity;
-    }
-
-    public Double getSaturation() {
-        return saturation;
-    }
-
-    public void setSaturation(Double saturation) {
-        this.saturation = saturation;
-    }
-
-    public Double getInfiltrationRate() {
-        return infiltrationRate;
-    }
-
-    public void setInfiltrationRate(Double infiltrationRate) {
-        this.infiltrationRate = infiltrationRate;
-    }
-
-    public Double getTotalArea() {
-        return totalArea;
-    }
-
-    public void setTotalArea(Double totalArea) {
-        this.totalArea = totalArea;
-    }
-
-    public Double getLatitude() {
-        return latitude;
-    }
-
-    public void setLatitude(Double latitude) {
-        this.latitude = latitude;
-    }
-
-    public Double getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(Double longitude) {
-        this.longitude = longitude;
-    }
-
-    public Plant getPlantInField() {
-        return plantInField;
-    }
-
-    public void setPlantInField(Plant plantInField) {
-        this.plantInField = plantInField;
-    }
-
-    public Timestamp getFieldCreationDate() {
-        return fieldCreationDate;
-    }
-
-    public void setFieldCreationDate(Timestamp fieldCreationDate) {
-        this.fieldCreationDate = fieldCreationDate;
-    }
-
-    public Set<Device> getDevices() {
-        return devices;
-    }
-
-    public void setDevices(Set<Device> devices) {
-        this.devices = devices;
-    }
-
-    public List<IrrigationRequest> getIrrigationRequests() {
-        return irrigationRequests;
-    }
-
-    public void setIrrigationRequests(List<IrrigationRequest> irrigationRequests) {
-        this.irrigationRequests = irrigationRequests;
-    }
-
-    public Set<SensorData> getSensorData() {
-        return sensorData;
-    }
-
-    public void setSensorData(Set<SensorData> sensorData) {
-        this.sensorData = sensorData;
-    }
-
-    public IrrigationStatus getIrrigationStatus() {
-        return irrigationStatus;
-    }
-
-    public void setIrrigationStatus(IrrigationStatus irrigationStatus) {
-        this.irrigationStatus = irrigationStatus;
+        //for jpa
     }
 }

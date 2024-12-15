@@ -1,8 +1,13 @@
 package io.mertkaniscan.automation_engine.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import java.math.BigDecimal;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 @Entity
 @Table(name = "hours")
 public class Hour {
@@ -15,63 +20,27 @@ public class Hour {
     private int hour; // Hour of the day (0-23)
 
     @Column(nullable = false)
-    private BigDecimal ke; // Evaporation coefficient (Ke)
+    private Double ke; // Evaporation coefficient (Ke)
 
-    @Column(nullable = false)
-    private BigDecimal eto; // Reference evapotranspiration (ETo)
+    @Column(name = "eto")
+    private Double sensorEToHourly; // Reference evapotranspiration (ETo)
+
+    @Column(nullable = true)
+    private Double guessedEtoHourly;
 
     @ManyToOne
     @JoinColumn(name = "dayid", nullable = false)
+    @JsonBackReference("day-hours")
     private Day day;
 
     public Hour() {
     }
 
-    public Hour(int hour, BigDecimal ke, BigDecimal eto, Day day) {
+    public Hour(int hour, Double ke, Double sensorEToHourly, Double guessedEtoHourly, Day day) {
         this.hour = hour;
         this.ke = ke;
-        this.eto = eto;
-        this.day = day;
-    }
-
-    // Getters and Setters
-    public int getHourID() {
-        return hourID;
-    }
-
-    public void setHourID(int hourID) {
-        this.hourID = hourID;
-    }
-
-    public int getHour() {
-        return hour;
-    }
-
-    public void setHour(int hour) {
-        this.hour = hour;
-    }
-
-    public BigDecimal getKe() {
-        return ke;
-    }
-
-    public void setKe(BigDecimal ke) {
-        this.ke = ke;
-    }
-
-    public BigDecimal getEto() {
-        return eto;
-    }
-
-    public void setEto(BigDecimal eto) {
-        this.eto = eto;
-    }
-
-    public Day getDay() {
-        return day;
-    }
-
-    public void setDay(Day day) {
+        this.sensorEToHourly = sensorEToHourly;
+        this.guessedEtoHourly = guessedEtoHourly;
         this.day = day;
     }
 }

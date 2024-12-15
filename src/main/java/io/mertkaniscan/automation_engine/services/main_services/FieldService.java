@@ -1,11 +1,12 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
+import io.mertkaniscan.automation_engine.services.ElevationService;
 import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
 import io.mertkaniscan.automation_engine.utils.config_loader.FieldConfig;
 import io.mertkaniscan.automation_engine.models.*;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataDTO;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.weather_response_obj.WeatherResponse;
+import io.mertkaniscan.automation_engine.models.SolarResponse;
+import io.mertkaniscan.automation_engine.models.WeatherResponse;
 import io.mertkaniscan.automation_engine.repositories.FieldRepository;
 import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataSocketService;
@@ -24,14 +25,16 @@ public class FieldService {
     private final DeviceService deviceService;
     private final SensorDataSocketService sensorDataSocketService;
     private final WeatherForecastService weatherForecastService;
+    private final ElevationService elevationService;
     private final ConfigLoader configLoader;
     private final ActuatorCommandSocketService actuatorCommandSocketService;
 
-    public FieldService(FieldRepository fieldRepository, DeviceService deviceService, SensorDataSocketService sensorDataSocketService, WeatherForecastService weatherForecastService, ConfigLoader configLoader, ActuatorCommandSocketService actuatorCommandSocketService) {
+    public FieldService(FieldRepository fieldRepository, DeviceService deviceService, SensorDataSocketService sensorDataSocketService, WeatherForecastService weatherForecastService, ElevationService elevationService, ConfigLoader configLoader, ActuatorCommandSocketService actuatorCommandSocketService) {
         this.fieldRepository = fieldRepository;
         this.deviceService = deviceService;
         this.sensorDataSocketService = sensorDataSocketService;
         this.weatherForecastService = weatherForecastService;
+        this.elevationService = elevationService;
         this.configLoader = configLoader;
         this.actuatorCommandSocketService = actuatorCommandSocketService;
     }
@@ -42,6 +45,13 @@ public class FieldService {
                 .filter(config -> config.getSoilType().equalsIgnoreCase(field.getFieldSoilType().toString()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Soil type not found in configuration: " + field.getFieldSoilType()));
+
+
+        field.setElevation(
+                elevationService.getElevation(
+                        field.getLatitude(), field.getLongitude()
+                ).getFirstElevation()
+        );
 
         field.setFieldCapacity(fieldConfig.getFieldCapacity());
         field.setWiltingPoint(fieldConfig.getWiltingPoint());

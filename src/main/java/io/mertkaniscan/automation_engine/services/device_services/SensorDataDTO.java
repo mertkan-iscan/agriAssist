@@ -1,12 +1,11 @@
 package io.mertkaniscan.automation_engine.services.device_services;
 
-import java.math.BigDecimal;
 
 public class SensorDataDTO {
     private String dataType;
-    private BigDecimal dataValue;
+    private Double dataValue;
 
-    public SensorDataDTO(String dataType, BigDecimal dataValue) {
+    public SensorDataDTO(String dataType, Double dataValue) {
         this.dataType = dataType;
         this.dataValue = dataValue;
     }
@@ -19,11 +18,11 @@ public class SensorDataDTO {
         this.dataType = dataType;
     }
 
-    public BigDecimal getDataValue() {
+    public Double getDataValue() {
         return dataValue;
     }
 
-    public void setDataValue(BigDecimal dataValue) {
+    public void setDataValue(Double dataValue) {
         this.dataValue = dataValue;
     }
 }

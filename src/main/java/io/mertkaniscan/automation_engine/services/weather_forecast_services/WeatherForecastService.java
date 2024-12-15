@@ -1,11 +1,15 @@
 package io.mertkaniscan.automation_engine.services.weather_forecast_services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.weather_response_obj.CurrentWeather;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.weather_response_obj.WeatherResponse;
+import io.mertkaniscan.automation_engine.models.SolarResponse;
+import io.mertkaniscan.automation_engine.models.WeatherResponse;
+import io.mertkaniscan.automation_engine.models.WeatherResponse.CurrentWeather;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -13,6 +17,8 @@ import java.time.format.DateTimeFormatter;
 
 @Service
 public class WeatherForecastService {
+
+    private static final Logger logger = LogManager.getLogger(WeatherForecastService.class);
 
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
@@ -93,6 +99,15 @@ public class WeatherForecastService {
             String jsonResponse = getWeatherData(latitude, longitude);
             WeatherResponse weatherResponse = parseWeatherData(jsonResponse);
 
+            if (weatherResponse == null) {
+                logger.error("Parsed WeatherResponse is null for coordinates: lat={}, lon={}", latitude, longitude);
+                throw new RuntimeException("Parsed weather response is null.");
+            }
+
+            // Log the parsed weather response
+            logger.info("Successfully parsed WeatherResponse for coordinates: lat={}, lon={} - {}",
+                    latitude, longitude, weatherResponse);
+
             // Get CurrentWeather object and convert the Unix timestamps
             CurrentWeather currentWeather = weatherResponse.getCurrent();
 
@@ -106,7 +121,8 @@ public class WeatherForecastService {
             return weatherResponse;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to fetch and parse WeatherResponse for coordinates: lat={}, lon={}. Error: {}",
+                    latitude, longitude, e.getMessage(), e);
             throw new RuntimeException("Failed to fetch and parse weather data", e);
         }
     }
@@ -121,15 +137,26 @@ public class WeatherForecastService {
         }
     }
 
-    // Method to fetch and parse solar data
     public SolarResponse getAndParseSolarData(double latitude, double longitude, LocalDate date) {
         try {
             String jsonResponse = getSolarData(latitude, longitude, date);
-            System.out.println(jsonResponse);
-            return parseSolarData(jsonResponse);
+            SolarResponse solarResponse = parseSolarData(jsonResponse);
+
+            if (solarResponse == null) {
+                logger.error("Parsed SolarResponse is null for coordinates: lat={}, lon={}, date={}",
+                        latitude, longitude, date);
+                throw new RuntimeException("Parsed solar response is null.");
+            }
+
+            // Log the parsed solar response
+            logger.info("Successfully parsed SolarResponse for coordinates: lat={}, lon={}, date={} - {}",
+                    latitude, longitude, date, solarResponse);
+
+            return solarResponse;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to fetch and parse SolarResponse for coordinates: lat={}, lon={}, date={}. Error: {}",
+                    latitude, longitude, date, e.getMessage(), e);
             throw new RuntimeException("Failed to fetch and parse solar data", e);
         }
     }

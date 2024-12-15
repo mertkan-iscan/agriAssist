@@ -5,10 +5,13 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.sql.Timestamp;
+
+@Getter
+@Setter
 @Entity
 @Table(name = "sensor_datas")
 public class SensorData {
@@ -25,18 +28,18 @@ public class SensorData {
     @Column(nullable = false)
     @NotNull(message = "Data value cannot be null")
     @Min(value = 0, message = "Data value must be non-negative")
-    private BigDecimal dataValue;
+    private Double dataValue;
 
     @Column(nullable = false, updatable = false)
     private Timestamp timestamp;
 
-    @JsonBackReference // Prevents infinite recursion in Device serialization
     @ManyToOne
+    @JsonBackReference("device-sensorDatas")
     @JoinColumn(name = "deviceID", nullable = false)
     private Device device;
 
-    @JsonBackReference("field-sensorData")
     @ManyToOne
+    @JsonBackReference("field-sensorData")
     @JoinColumn(name = "fieldID", nullable = false)
     private Field field;
 
@@ -44,7 +47,7 @@ public class SensorData {
         // No-argument constructor for JPA
     }
 
-    public SensorData(String dataType, BigDecimal dataValue, Timestamp timestamp, Device device) {
+    public SensorData(String dataType, Double dataValue, Timestamp timestamp, Device device) {
         this.dataType = dataType;
         this.dataValue = dataValue;
         this.timestamp = timestamp;
@@ -56,61 +59,11 @@ public class SensorData {
         timestamp = new Timestamp(System.currentTimeMillis());
     }
 
-    // Getters and Setters
-    public int getSensorDataID() {
-        return sensorDataID;
-    }
-
-    public String getDataType() {
-        return dataType;
-    }
-
-    public void setDataType(String dataType) {
-        this.dataType = dataType;
-    }
-
-    public BigDecimal getDataValue() {
-        return dataValue;
-    }
-
-    public void setDataValue(BigDecimal dataValue) {
-        this.dataValue = dataValue;
-    }
-
-    public Timestamp getTimestamp() {
-        return timestamp;
-    }
-
-    public Device getDevice() {
-        return device;
-    }
-
-    public void setDevice(Device device) {
-        this.device = device;
-    }
-
-    public Field getField() {
-        return field;
-    }
-
-    public void setField(Field field) {
-        this.field = field;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SensorData that = (SensorData) o;
         return sensorDataID == that.sensorDataID;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(sensorDataID);
-    }
-
-    public void setTimestamp(Timestamp timestamp) {
-        this.timestamp = timestamp;
     }
 }

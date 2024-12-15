@@ -4,19 +4,19 @@ import java.time.LocalDateTime;
 
 public class DepletionData {
 
-    private double depletion; // D value
+    private Double depletion; // D value
     private LocalDateTime lastUpdated;
 
-    public DepletionData(double depletion, LocalDateTime lastUpdated) {
+    public DepletionData(Double depletion, LocalDateTime lastUpdated) {
         this.depletion = depletion;
         this.lastUpdated = lastUpdated;
     }
 
-    public double getDepletion() {
+    public Double getDepletion() {
         return depletion;
     }
 
-    public void setDepletion(double depletion) {
+    public void setDepletion(Double depletion) {
         this.depletion = depletion;
     }
 

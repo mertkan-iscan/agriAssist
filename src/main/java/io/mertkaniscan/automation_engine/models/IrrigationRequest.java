@@ -4,8 +4,12 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.time.LocalDateTime;
+@Getter
+@Setter
 @Entity
 @Table(name = "irrigation_requests")
 public class IrrigationRequest {
@@ -48,70 +52,5 @@ public class IrrigationRequest {
     @Column(name = "irrigation_end_time", nullable = false)
     @JsonIgnore
     private LocalDateTime irrigationEndTime;
-
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public Field getField() {
-        return field;
-    }
-
-    public void setField(Field field) {
-        this.field = field;
-    }
-
-    public IrrigationStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(IrrigationStatus status) {
-        this.status = status;
-    }
-
-    public Double getFlowRate() {
-        return flowRate;
-    }
-
-    public void setFlowRate(Double flowRate) {
-        this.flowRate = flowRate;
-    }
-
-    public Double getTotalWaterAmount() {
-        return totalWaterAmount;
-    }
-
-    public void setTotalWaterAmount(Double totalWaterAmount) {
-        this.totalWaterAmount = totalWaterAmount;
-    }
-
-    public LocalDateTime getIrrigationStartTime() {
-        return irrigationStartTime;
-    }
-
-    public void setIrrigationtStartTime(LocalDateTime irrigationtStartTime) {
-        this.irrigationStartTime = irrigationtStartTime;
-    }
-
-    public Integer getIrrigationDuration() {
-        return irrigationDuration;
-    }
-
-    public void setIrrigationDuration(Integer irrigationDuration) {
-        this.irrigationDuration = irrigationDuration;
-    }
-
-    public LocalDateTime getIrrigationEndTime() {
-        return irrigationEndTime;
-    }
-
-    public void setIrrigationEndTime(LocalDateTime irrigationEndTime) {
-        this.irrigationEndTime = irrigationEndTime;
-    }
 }
 

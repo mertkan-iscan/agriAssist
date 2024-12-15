@@ -6,8 +6,6 @@ import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.repositories.PlantRepository;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-
 @Service
 public class PlantService {
 
@@ -26,7 +24,7 @@ public class PlantService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Plant type not found in configuration: " + plant.getPlantType()));
 
-        plant.setCurrentCropCoefficient(BigDecimal.valueOf(plantConfig.getKcValues().getKcInit()));
+        plant.setCurrentCropCoefficient(plantConfig.getKcValues().getKcInit());
         plant.setCurrentRootZoneDepth(plantConfig.getRootZoneDepth());
         plant.setAllowableDepletion(plantConfig.getAllowableDepletion());
 
