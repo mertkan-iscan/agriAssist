@@ -1,0 +1,23 @@
+{
+  "deviceJoinResponse": {
+    "messageType": "join_accepted"
+  },
+  "pullSensorData": {
+    "messageType": "send_sensordata"
+  },
+  "pullWeatherData": {
+    "messageType": "send_weatherdata"
+  },
+  "pullSoilMoistureData": {
+    "messageType": "send_soil_moisture_data"
+  },
+  "actuatorCommands": {
+    "general": {
+      "messageType": "{commandType}"
+    },
+    "setValve": {
+      "messageType": "set_valve",
+      "degree": "{degree}"
+    }
+  }
+}
