@@ -216,13 +216,16 @@ public class DailyTaskService {
         List<SolarResponse.Irradiance.HourlyIrradiance> hourlyIrradiances =
                 weatherData.solarResponse.getIrradiance().getHourly();
 
-        for (int i = 0; i < 24; i++) {
-            Hourly hourlyWeather = hourlyForecasts.get(i);
+        for (int minute = 0; minute < 1440; minute += 60) {
+
+            int hourIndex = minute / 60;
+
+            Hourly hourlyWeather = hourlyForecasts.get(hourIndex);
             boolean isSunny = hourlyWeather.getClouds() < 50;
 
-            SolarValues solarValues = getSolarValues(hourlyIrradiances.get(i), isSunny);
+            SolarValues solarValues = getSolarValues(hourlyIrradiances.get(hourIndex), isSunny);
             WeatherValues weatherValues = getWeatherValues(hourlyWeather);
-            Hour hourRecord = createHourRecord(field, i, weatherValues, solarValues, plant, day);
+            Hour hourRecord = createHourRecord(field, minute, weatherValues, solarValues, plant, day);
 
             day.getHours().add(hourRecord);
         }
@@ -243,26 +246,19 @@ public class DailyTaskService {
         );
     }
 
-    private Hour createHourRecord(Field field, int hourIndex, WeatherValues weather, SolarValues solar, Plant plant, Day day) {
+    private Hour createHourRecord(Field field, int minute, WeatherValues weather, SolarValues solar, Plant plant, Day day) {
 
         double guessedEto = calculatorService.calculateEToHourly(
                 weather.temp,           // Current temperature
                 weather.humidity,       // Current humidity
                 weather.windSpeed,      // Current wind speed
                 field.getLatitude(),    // Field latitude
-                field.getElevation(),    // Field elevation
-                solar.ghi,             // Current hour's solar radiation
-                weather.pressure       // Current pressure in hPa
+                field.getElevation(),   // Field elevation
+                solar.ghi,              // Current hour's solar radiation
+                weather.pressure        // Current pressure in hPa
         );
 
-        double ke = calculatorService.calculateKe(
-                plant.getCurrentCropCoefficient(),
-                weather.humidity,
-                weather.windSpeed,
-                0, 0, 0
-        );
-
-        return new Hour(hourIndex, ke, null, guessedEto, day);
+        return new Hour(minute, guessedEto, day);
     }
 
 

@@ -141,15 +141,9 @@ public class HourlyTaskService {
                 weatherData.getPressure()
         );
 
-        double ke = calculatorService.calculateKe(
-                field.getPlantInField().getCurrentCropCoefficient().doubleValue(),
-                weatherData.getHumidity(),
-                weatherData.getWindSpeed(),
-                0, 0, 0
-        );
+
 
         hour.setSensorEToHourly(eto);
-        hour.setKe(ke);
 
         dayRepository.save(hour.getDay());
     }

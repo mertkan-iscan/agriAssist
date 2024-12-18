@@ -24,7 +24,7 @@ public class PlantService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Plant type not found in configuration: " + plant.getPlantType()));
 
-        plant.setCurrentCropCoefficient(plantConfig.getKcValues().getKcInit());
+        plant.setCurrentKcValue(plantConfig.getKcValues().getKcInit());
         plant.setCurrentRootZoneDepth(plantConfig.getRootZoneDepth());
         plant.setAllowableDepletion(plantConfig.getAllowableDepletion());
 

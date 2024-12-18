@@ -17,8 +17,9 @@ import java.util.Set;
 public class Field {
 
     public enum FieldType {
-        SOILFIELD,
-        GREENHOUSE
+        OUTDOOR,
+        GREENHOUSE,
+        SOILFIELD
     }
 
     public enum SoilType {
@@ -33,11 +34,14 @@ public class Field {
         IRRIGATING
     }
 
-    // Getters and Setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "fieldid")
     private Integer fieldID;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Timestamp fieldCreationDate;
 
     @Column(nullable = false, unique = true)
     private String fieldName;
@@ -51,10 +55,10 @@ public class Field {
     private SoilType fieldSoilType;
 
     @Column(nullable = false)
-    private Double fieldCapacity; // FC (Field Capacity)
+    private Double fieldCapacity;
 
     @Column(nullable = false)
-    private Double wiltingPoint; // WP (Wilting Point)
+    private Double wiltingPoint;
 
     @Column(nullable = false)
     private Double bulkDensity; // soil density (g/cm³)
@@ -63,10 +67,10 @@ public class Field {
     private Double saturation; // Toprağın maksimum su kapasitesi
 
     @Column(nullable = false)
-    private Double infiltrationRate; // İnfiltrasyon hızı (mm/saat)
+    private Double infiltrationRate;//(mm/hour)
 
     @Column(nullable = false)
-    private Double totalArea; // Toplam alan (m²)
+    private Double totalArea; //m2
 
     @Column(nullable = false)
     private Double latitude;
@@ -77,9 +81,29 @@ public class Field {
     @Column(nullable = false)
     private Double elevation;
 
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private Timestamp fieldCreationDate;
+    @Column(nullable = false)
+    private Double maxEvaporationDepth;
+
+    @Column
+    private Double currentKeValue= 0.0;
+
+    @Column
+    private Double currentTEWValue= 0.0;
+
+    @Column
+    private Double currentREWValue = 0.0;
+
+    @Column
+    private Double currentWetArea;
+
+    @Column
+    private Double currentDeValue;
+
+    @Column
+    private Double currentWindSpeed;
+
+    @Column
+    private Boolean isRaining = false;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "plant_id", referencedColumnName = "plantID")
@@ -90,17 +114,16 @@ public class Field {
     private IrrigationStatus irrigationStatus = IrrigationStatus.NOT_IRRIGATING;
 
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference("field-irrigationRequest")
+    private List<IrrigationRequest> irrigationRequests;
+
+    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("field-devices")
     private Set<Device> devices;
-
 
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("field-sensorData")
     private Set<SensorData> sensorData;
-
-    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference("field-irrigationRequest")
-    private List<IrrigationRequest> irrigationRequests;
 
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("field-solarResponses")
@@ -109,6 +132,7 @@ public class Field {
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("field-weatherResponses")
     private Set<WeatherResponse> weatherResponses ;
+
 
     public Field(Integer fieldID, String fieldName, FieldType fieldType, SoilType fieldSoilType, Plant plantInField,
                  Double fieldCapacity, Double wiltingPoint, Double bulkDensity, Double saturation,
@@ -129,7 +153,7 @@ public class Field {
         this.fieldCreationDate = fieldCreationDate;
     }
 
-    public Field() {
-        //for jpa
-    }
+    public Field() {}
+
+
 }

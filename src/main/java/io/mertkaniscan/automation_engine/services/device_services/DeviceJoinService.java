@@ -9,6 +9,7 @@ import io.mertkaniscan.automation_engine.utils.DeviceSocketWrapper;
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
+import io.mertkaniscan.automation_engine.utils.config_loader.DeviceCommandConfigLoader;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -203,8 +204,7 @@ public class DeviceJoinService {
 
         try {
             PrintWriter out = new PrintWriter(deviceSocket.getOutputStream(), true);
-            String message = DeviceJsonMessageFactory.createDeviceJoinResponse("join_accepted");
-
+            String message = DeviceCommandConfigLoader.getDeviceJoinResponse("join_accepted");
             Thread.sleep(1000);
 
             out.println(message);
@@ -221,8 +221,7 @@ public class DeviceJoinService {
 
         try {
             PrintWriter out = new PrintWriter(deviceSocket.getOutputStream(), true);
-            String message = DeviceJsonMessageFactory.createDeviceJoinResponse("join_refused");
-
+            String message = DeviceCommandConfigLoader.getDeviceJoinResponse("join_refused");
             Thread.sleep(1000);
 
             out.println(message);

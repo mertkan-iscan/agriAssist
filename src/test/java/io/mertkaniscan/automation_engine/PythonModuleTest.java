@@ -5,10 +5,7 @@ import io.mertkaniscan.automation_engine.services.python_module_services.Network
 import io.mertkaniscan.automation_engine.services.python_module_services.PythonTaskService;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.net.Socket;
-
-public class Main {
+public class PythonModuleTest {
     public static void main(String[] args) {
 
         NetworkService networkService = new NetworkService();
@@ -49,5 +46,10 @@ public class Main {
                 serverHost, serverPort, sensorReadings2D, radius, height, mode, coeffs);
 
         System.out.println("Soil Water Calculation Response: " + soilWaterResponse);
+
+        JSONObject soilWaterPercentageResponse = taskService.sendInterpolationSoilWaterPercentage(
+                serverHost, serverPort, sensorReadings2D, radius, height, coeffs);
+
+        System.out.println("Soil Water Percentage Calculation Response: " + soilWaterPercentageResponse);
     }
 }

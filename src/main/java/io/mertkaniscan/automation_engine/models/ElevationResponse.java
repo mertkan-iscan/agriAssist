@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.services;
+package io.mertkaniscan.automation_engine.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

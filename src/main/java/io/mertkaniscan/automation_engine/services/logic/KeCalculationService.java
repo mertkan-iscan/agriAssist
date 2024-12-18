@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.services;
+package io.mertkaniscan.automation_engine.services.logic;
 
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.Plant;
@@ -19,8 +19,12 @@ public class KeCalculationService {
 
     @Autowired
     private HourRepository hoursRepository;
+
     @Autowired
     private FieldService fieldService;
+
+    @Autowired
+    private CalculatorService calculatorService;
 
     @Transactional
     public void calculateAndUpdateKeValues(int fieldID) {
@@ -30,23 +34,22 @@ public class KeCalculationService {
 
         List<Hour> hoursList = hoursRepository.findAll();
 
-        for (Hour hour : hoursList) {
+        //for (Hour hour : hoursList) {
 
             // Gather required parameters for the Ke calculation
-            double Kr = Calculators.calculateKr(hour.getDeValue(), hour.getTEWValue(), hour.getREWValue());
-            double fw = Calculators.calculateFw(hour.get(), hour.getTotalArea());
-            double KcMax = Calculators.calculateKcMax(plant.getKcBasal(), hour.getHumidity(), hour.getWindSpeed());
+            //double fw = calculatorService.calculateFw(fieldID);
+            //double KcMax = Calculators.calculateKcMax(plant.getCurrentKcValue(), hour.getSensorHumidity(), hour.getSensorWindSpeed());
+//
+            //// Calculate Ke using Calculators utility
+            //double Ke = calculatorService.calculateKe(Kr, fw, KcMax, hour.getDeValue(), hour.getTEWValue(), hour.getREWValue());
 
-            // Calculate Ke using Calculators utility
-            double Ke = Calculators.calculateKe(Kr, fw, KcMax, hour.getDeValue(), hour.getTEWValue(), hour.getREWValue());
-
-            field.setCurrentKeValue();
-            field.setCurrentTEWValue();
-            field.setCurrentREWValue();
-
-            hour.setKeValue(Ke);
-            hour.setLastUpdated(LocalDateTime.now());
-        }
+            //field.setCurrentKeValue(Ke);
+            //field.setCurrentTEWValue();
+            //field.setCurrentREWValue();
+//
+            //hour.setKeValue(Ke);
+            //hour.setLastUpdated(LocalDateTime.now());
+        //}
 
         hoursRepository.saveAll(hoursList);
     }

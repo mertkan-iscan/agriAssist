@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.services;
+package io.mertkaniscan.automation_engine.services.main_services;
 
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;

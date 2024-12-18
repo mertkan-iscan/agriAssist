@@ -1,40 +1,39 @@
 [
   {
     "type": "weather_sensor",
-    "expectedDataTypes": [
-      "weather_temp",
-      "weather_hum"
-    ]
-  },
-  {
-    "type": "weather_sensor",
-    "expectedDataTypes": [
-      "weather_temp",
-      "weather_hum"
-    ]
+    "commandDataTypes": {
+      "send_weatherdata": [
+        "weather_temp",
+        "weather_hum"
+      ]
+    }
   },
   {
     "type": "multi_soil_mois",
-    "expectedDataTypes": [
-      "depth_1",
-      "depth_2",
-      "depth_3",
-      "depth_4"
-    ]
+    "commandDataTypes": {
+      "send_soil_moisture_data": [
+        "depth_1",
+        "depth_2",
+        "depth_3",
+        "depth_4"
+      ]
+    }
   },
   {
     "type": "multi_soil_mois_temp_weather",
-    "expectedDataTypes": [
-      "depth_1_1",
-      "depth_1_2",
-      "depth_1_3",
-
-      "depth_2_1",
-      "depth_2_2",
-      "depth_2_3",
-
-      "weather_temp",
-      "weather_hum"
-    ]
+    "commandDataTypes": {
+      "send_soil_moisture_data": [
+        "depth_1_1",
+        "depth_1_2",
+        "depth_1_3",
+        "depth_2_1",
+        "depth_2_2",
+        "depth_2_3"
+      ],
+      "send_weatherdata": [
+        "weather_temp",
+        "weather_hum"
+      ]
+    }
   }
 ]

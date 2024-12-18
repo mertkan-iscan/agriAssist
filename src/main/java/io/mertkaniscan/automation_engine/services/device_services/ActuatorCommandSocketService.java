@@ -1,5 +1,6 @@
 package io.mertkaniscan.automation_engine.services.device_services;
 
+import io.mertkaniscan.automation_engine.utils.config_loader.DeviceCommandConfigLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -7,7 +8,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
-import static io.mertkaniscan.automation_engine.utils.DeviceJsonMessageFactory.createValveActuatorCommand;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
@@ -27,9 +27,11 @@ public class ActuatorCommandSocketService {
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final DeviceService deviceService;
+    private final DeviceCommandConfigLoader deviceCommandConfigLoader;
 
-    public ActuatorCommandSocketService(DeviceService deviceService) {
+    public ActuatorCommandSocketService(DeviceService deviceService, DeviceCommandConfigLoader deviceCommandConfigLoader) {
         this.deviceService = deviceService;
+        this.deviceCommandConfigLoader = deviceCommandConfigLoader;
     }
 
     public String sendActuatorCommand(int deviceID, int degree) throws Exception {
@@ -62,7 +64,9 @@ public class ActuatorCommandSocketService {
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                 // Create the actuator command JSON
-                String command = createValveActuatorCommand(degree);
+                String command = deviceCommandConfigLoader.getValveActuatorCommand(degree);
+
+
                 out.println(command);
 
                 // Read response from the actuator

@@ -1,12 +1,13 @@
 package io.mertkaniscan.automation_engine.models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Getter
@@ -34,6 +35,9 @@ public class Plant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int plantID;
 
+    @Column(nullable = false)
+    private int fieldID;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PlantType plantType;
@@ -42,7 +46,7 @@ public class Plant {
     private Timestamp plantSowDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = true)
+    @Column
     private PlantStage plantStage;
 
     @Column(nullable = false)
@@ -52,10 +56,7 @@ public class Plant {
     private Double allowableDepletion;
 
     @Column(nullable = false)
-    private Double currentCropCoefficient; // Kc
-
-    @Column(nullable = false)
-    private int fieldID;
+    private Double currentKcValue;
 
     @OneToMany(mappedBy = "plant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("plant-days")
@@ -65,7 +66,7 @@ public class Plant {
     }
 
     public Plant(int plantID, PlantType plantType, Timestamp plantSowDate, PlantStage plantStage,
-                 Double currentRootZoneDepth, Double allowableDepletion, Double currentCropCoefficient, int fieldID) {
+                 Double currentRootZoneDepth, Double allowableDepletion, Double currentKcValue, int fieldID) {
 
         this.plantID = plantID;
         this.plantType = plantType;
@@ -73,7 +74,44 @@ public class Plant {
         this.plantStage = plantStage;
         this.currentRootZoneDepth = currentRootZoneDepth;
         this.allowableDepletion = allowableDepletion;
-        this.currentCropCoefficient = currentCropCoefficient;
+        this.currentKcValue = currentKcValue;
         this.fieldID = fieldID;
+    }
+
+    public Day getToday() {
+
+        if (days == null || days.isEmpty()) {
+            return null;
+        }
+
+        LocalDate today = LocalDate.now();
+
+        return days.stream()
+                .filter(day -> {
+                    LocalDate dayDate = day.getDate().toLocalDateTime().toLocalDate();
+                    return dayDate.equals(today);
+                })
+                .findFirst()
+                .orElse(null);
+    }
+
+    public Hour getCurrentHour() {
+        Day today = getToday();
+        if (today == null || today.getHours() == null || today.getHours().isEmpty()) {
+            return null;
+        }
+
+        // Get current time in minutes since midnight
+        LocalTime now = LocalTime.now();
+        int currentMinuteOfDay = now.getHour() * 60 + now.getMinute();
+
+        // Find the closest hour record
+        return today.getHours().stream()
+                .min((h1, h2) -> {
+                    int diff1 = Math.abs(h1.getMinuteOfDay() - currentMinuteOfDay);
+                    int diff2 = Math.abs(h2.getMinuteOfDay() - currentMinuteOfDay);
+                    return Integer.compare(diff1, diff2);
+                })
+                .orElse(null);
     }
 }

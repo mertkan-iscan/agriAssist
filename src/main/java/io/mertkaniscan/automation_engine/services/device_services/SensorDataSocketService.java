@@ -5,10 +5,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import io.mertkaniscan.automation_engine.models.SensorData;
-import io.mertkaniscan.automation_engine.services.SensorConfigService;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
-import io.mertkaniscan.automation_engine.utils.DeviceJsonMessageFactory;
 import io.mertkaniscan.automation_engine.models.Device;
+import io.mertkaniscan.automation_engine.utils.config_loader.DeviceCommandConfigLoader;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -32,10 +31,14 @@ public class SensorDataSocketService {
 
     private final DeviceService deviceService;
     private final SensorConfigService sensorConfigService;
+    private final DeviceCommandConfigLoader deviceCommandConfigLoader;
 
-    public SensorDataSocketService(DeviceService deviceService, SensorConfigService sensorConfigService) {
+    public SensorDataSocketService(DeviceService deviceService,
+                                   SensorConfigService sensorConfigService,
+                                   DeviceCommandConfigLoader deviceCommandConfigLoader) {
         this.deviceService = deviceService;
         this.sensorConfigService = sensorConfigService;
+        this.deviceCommandConfigLoader = deviceCommandConfigLoader;
     }
 
     public <T> List<T> fetchSensorData(int deviceID, DataParser<T> parser) throws Exception {
@@ -61,35 +64,59 @@ public class SensorDataSocketService {
 
     private <T> List<T> communicateWithDevice(Device device, DataParser<T> parser) throws Exception {
         String deviceIp = device.getDeviceIp();
+        List<T> allSensorData = new ArrayList<>();
+        String sensorType = device.getDeviceModel();
 
-        Callable<List<T>> fetchSensorDataTask = () -> {
-            try (Socket socket = new Socket(deviceIp, 5000);
-                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+        List<String> availableCommands = sensorConfigService.getAvailableCommandsForSensorType(sensorType);
 
-                String command = DeviceJsonMessageFactory.pullSensorData();
-                out.println(command);
+        if (availableCommands == null || availableCommands.isEmpty()) {
+            throw new Exception("No commands configured for sensor type: " + sensorType);
+        }
 
-                String sensorDataJson = in.readLine();
+        for (String command : availableCommands) {
+            Callable<List<T>> fetchSensorDataTask = () -> {
+                try (Socket socket = new Socket(deviceIp, 5000);
+                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-                if (sensorDataJson == null || sensorDataJson.isEmpty()) {
-                    throw new Exception("Received empty sensor data from device ID: " + device.getDeviceID());
+                    String commandJson = getCommandJson(command);
+                    out.println(commandJson);
+
+                    String sensorDataJson = in.readLine();
+
+                    if (sensorDataJson == null || sensorDataJson.isEmpty()) {
+                        throw new Exception("Received empty sensor data from device ID: " + device.getDeviceID());
+                    }
+
+                    return parser.parse(sensorDataJson, device, command);
+
+                } catch (IOException e) {
+                    throw new Exception("Error communicating with device ID " + device.getDeviceID() + ": " + e.getMessage());
                 }
+            };
 
-                return parser.parse(sensorDataJson, device);
+            Future<List<T>> future = executorService.submit(fetchSensorDataTask);
 
-            } catch (IOException e) {
-                throw new Exception("Error communicating with device ID " + device.getDeviceID() + ": " + e.getMessage());
+            try {
+                List<T> commandData = future.get(20, TimeUnit.SECONDS);
+                allSensorData.addAll(commandData);
+            } catch (Exception e) {
+                future.cancel(true);
+                throw new Exception("Timeout: No response from device within 20 seconds. Device ID: " + device.getDeviceID());
             }
-        };
+        }
 
-        Future<List<T>> future = executorService.submit(fetchSensorDataTask);
+        return allSensorData;
+    }
 
-        try {
-            return future.get(20, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            future.cancel(true);
-            throw new Exception("Timeout: No response from device within 10 seconds. Device ID: " + device.getDeviceID());
+    private String getCommandJson(String commandType) {
+        switch (commandType) {
+            case "send_weatherdata":
+                return deviceCommandConfigLoader.getPullWeatherData();
+            case "send_soil_moisture_data":
+                return deviceCommandConfigLoader.getPullSoilMoistureData();
+            default:
+                return deviceCommandConfigLoader.getPullSensorData(); // fallback
         }
     }
 
@@ -101,10 +128,8 @@ public class SensorDataSocketService {
         return fetchSensorData(deviceID, this::parseAndValidateSensorDataValue);
     }
 
-    private List<SensorData> parseAndValidateSensorData(String sensorDataJson, Device device) throws Exception {
-
-        return parseSensorData(sensorDataJson, device, (dataType, dataValue) -> {
-
+    private List<SensorData> parseAndValidateSensorData(String sensorDataJson, Device device, String command) throws Exception {
+        return parseSensorData(sensorDataJson, device, command, (dataType, dataValue) -> {
             SensorData sensorData = new SensorData();
             sensorData.setDataType(dataType);
             sensorData.setDataValue(dataValue);
@@ -114,20 +139,20 @@ public class SensorDataSocketService {
         });
     }
 
-    private List<SensorDataDTO> parseAndValidateSensorDataValue(String sensorDataJson, Device device) throws Exception {
-        return parseSensorData(sensorDataJson, device, SensorDataDTO::new);
+    private List<SensorDataDTO> parseAndValidateSensorDataValue(String sensorDataJson, Device device, String command) throws Exception {
+        return parseSensorData(sensorDataJson, device, command, SensorDataDTO::new);
     }
 
-    private <T> List<T> parseSensorData(String sensorDataJson, Device device, DataFactory<T> factory) throws Exception {
+    private <T> List<T> parseSensorData(String sensorDataJson, Device device, String command, DataFactory<T> factory) throws Exception {
         List<T> sensorDataList = new ArrayList<>();
 
         try {
             JsonObject jsonObject = JsonParser.parseString(sensorDataJson).getAsJsonObject();
             String sensorModel = device.getDeviceModel();
-            List<String> expectedDataTypes = sensorConfigService.getExpectedDataTypesForSensorType(sensorModel);
+            List<String> expectedDataTypes = sensorConfigService.getExpectedDataTypesForSensorTypeAndCommand(sensorModel, command);
 
             if (expectedDataTypes == null) {
-                logger.warn("No configuration found for sensor type: {}", sensorModel);
+                logger.warn("No configuration found for sensor type: {} and command: {}", sensorModel, command);
                 return sensorDataList;
             }
 
@@ -166,7 +191,7 @@ public class SensorDataSocketService {
 
     @FunctionalInterface
     private interface DataParser<T> {
-        List<T> parse(String json, Device device) throws Exception;
+        List<T> parse(String json, Device device, String command) throws Exception;
     }
 
     @FunctionalInterface

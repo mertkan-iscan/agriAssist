@@ -1,6 +1,6 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
-import io.mertkaniscan.automation_engine.services.ElevationService;
+import io.mertkaniscan.automation_engine.services.weather_forecast_services.ElevationService;
 import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
 import io.mertkaniscan.automation_engine.utils.config_loader.FieldConfig;
 import io.mertkaniscan.automation_engine.models.*;
@@ -53,6 +53,7 @@ public class FieldService {
                 ).getFirstElevation()
         );
 
+        field.setMaxEvaporationDepth(fieldConfig.getMaxEvaporationDepth());
         field.setFieldCapacity(fieldConfig.getFieldCapacity());
         field.setWiltingPoint(fieldConfig.getWiltingPoint());
         field.setBulkDensity(fieldConfig.getBulkDensity());

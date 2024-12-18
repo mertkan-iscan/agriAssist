@@ -34,6 +34,9 @@ public class Day {
     @Column(nullable = false)
     private Double guessedEtoDaily = 0.0;
 
+    @Column
+    private Double dailyDepletion; // Günlük toplam eksilme (mm)
+
     @OneToMany(mappedBy = "day", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("day-hours")
     private List<Hour> hours;

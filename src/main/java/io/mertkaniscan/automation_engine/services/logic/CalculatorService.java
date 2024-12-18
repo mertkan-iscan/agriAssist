@@ -1,30 +1,55 @@
 package io.mertkaniscan.automation_engine.services.logic;
 
-import io.mertkaniscan.automation_engine.models.Day;
+
 import io.mertkaniscan.automation_engine.models.DepletionData;
-import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
+import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.Plant;
+import io.mertkaniscan.automation_engine.services.main_services.FieldService;
+import io.mertkaniscan.automation_engine.services.python_module_services.PythonTaskService;
+import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
+
 import io.mertkaniscan.automation_engine.utils.calculators.DailyEToCalculator;
 import io.mertkaniscan.automation_engine.utils.calculators.HourlyEToCalculator;
+import lombok.Getter;
 import org.springframework.stereotype.Service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoField;
 
+@Getter
 @Service
 public class CalculatorService {
 
     private static final Logger logger = LogManager.getLogger(CalculatorService.class);
 
-    private DepletionData depletionData;
+    private final FieldService fieldService;
+    private final PythonTaskService pythonTaskService;
 
-    public CalculatorService() {
-        this.depletionData = new DepletionData(0.0, LocalDateTime.now());
+    public CalculatorService(FieldService fieldService, PythonTaskService pythonTaskService) {
+        this.fieldService = fieldService;
+        this.pythonTaskService = pythonTaskService;
     }
 
+    //public double calculateRew(int fieldID){
+//
+    //    pythonTaskService.sendInterpolationSoilWaterPercentage();
+    //}
+
+    public double calculateTEW(double fieldCapacity, double fieldWiltingPoint, double plantCurrentRootDepth, double fieldMaxEvoporationdepth){
+
+        double Ze = Math.min(plantCurrentRootDepth, fieldMaxEvoporationdepth);
+
+        return Calculators.calculateTEW(fieldCapacity, fieldWiltingPoint, Ze);
+    }
+
+    public double calculateTAW(int fieldID){
+        Field field = fieldService.getFieldById(fieldID);
+        Plant plant = field.getPlantInField();
+
+        return Calculators.calculateTAW(field.getFieldCapacity(), field.getWiltingPoint(), plant.getCurrentRootZoneDepth());
+    }
     /**
      * Calculates daily reference evapotranspiration (ETo) using the FAO-56 Penman-Monteith equation.
      *
@@ -40,22 +65,28 @@ public class CalculatorService {
      */
     public double calculateEToDaily(double Tmax, double Tmin, double ghi, double windSpeed,
                                     double humidity, double latitude, double elevation, double pressureHpa) {
-
         int dayOfYear = LocalDateTime.now().getDayOfYear();
 
         // Log all input parameters
-        logger.info("Input - Tmax: " + Tmax);
-        logger.info("Input - Tmin: " + Tmin);
-        logger.info("Input - GHI: " + ghi);
-        logger.info("Input - Wind Speed: " + windSpeed);
-        logger.info("Input - Humidity: " + humidity);
-        logger.info("Input - Latitude: " + latitude);
-        logger.info("Input - Elevation: " + elevation);
-        logger.info("Input - Pressure (hPa): " + pressureHpa);
-        logger.info("Internal - Calculated Day of Year: " + dayOfYear);
+        logger.info("Input - Tmax: {}", Tmax);
+        logger.info("Input - Tmin: {}", Tmin);
+        logger.info("Input - GHI: {}", ghi);
+        logger.info("Input - Wind Speed: {}", windSpeed);
+        logger.info("Input - Humidity: {}", humidity);
+        logger.info("Input - Latitude: {}", latitude);
+        logger.info("Input - Elevation: {}", elevation);
+        logger.info("Input - Pressure (hPa): {}", pressureHpa);
+        logger.info("Internal - Calculated Day of Year: {}", dayOfYear);
 
-        return DailyEToCalculator.calculateEToDaily(Tmax, Tmin, ghi, windSpeed,
-                humidity, latitude, elevation, pressureHpa, dayOfYear);
+        double eto = DailyEToCalculator.calculateEToDaily(
+                Tmax, Tmin, ghi, windSpeed, humidity, latitude, elevation, pressureHpa, dayOfYear);
+
+        if (eto < 0) {
+            logger.warn("Calculated ETo (Daily) is negative! Setting to 0. Value: " + eto);
+            eto = 0.0;
+        }
+
+        return eto;
     }
 
     /**
@@ -74,57 +105,84 @@ public class CalculatorService {
                                      double latitude, double elevation, double radiation,
                                      double pressureHpa) {
 
-        int dayOfYear = LocalDateTime.now().get(ChronoField.DAY_OF_YEAR);
+        int dayOfYear = LocalDateTime.now().getDayOfYear();
         int hour = LocalDateTime.now().getHour();
 
         boolean isDaytime = radiation > 0;
 
-        return HourlyEToCalculator.calculateEToHourly(temp, humidity, windSpeed,
-                latitude, elevation, dayOfYear, hour, radiation, pressureHpa, isDaytime);
+        double eto = HourlyEToCalculator.calculateEToHourly(
+                temp, humidity, windSpeed, latitude, elevation, dayOfYear, hour, radiation, pressureHpa, isDaytime);
+
+        // Ensure value is non-negative
+        if (eto < 0) {
+            logger.warn("Calculated ETo (Hourly) is negative! Setting to 0. Value: {}", eto);
+            eto = 0.0;
+        }
+
+        return eto;
     }
 
-    public synchronized void calculateDepletion(double evapotranspiration, double rainfall) {
+    /**
+     * Calculates the wetted area fraction (fw) for drip irrigation.
+     *
+     * @param irrigationDuration The duration of irrigation in hours
+     * @param emitterRate        The emitter rate of drip irrigation in L/hour
+     * @param totalArea          The total area of the field in square meters
+     * @return The calculated wetted area fraction (fw)
+     */
+    private double calculateFwForDripIrrigation(double irrigationDuration, double emitterRate, double totalArea) {
+        // Estimate wetted area using emitter rate and irrigation time
+        // Example calculation: Assume a standard radius of wetting per emitter
+        double waterVolume = irrigationDuration * emitterRate; // Total water volume in liters
+        double wettedArea = waterVolume / 10.0; // Convert to approximate m² (assumption: 1 liter covers ~10m²).
 
-        double previousD = depletionData.getDepletion();
-
-        // FAO Depletion Formula: D = D_prev - Rainfall + ET
-        double newDepletion = Math.max(0, previousD - rainfall + evapotranspiration);
-
-        depletionData.setDepletion(newDepletion);
-        depletionData.setLastUpdated(LocalDateTime.now());
-
-        System.out.println("Depletion updated: D = " + newDepletion);
+        // Return fraction of wetted area
+        return Calculators.calculateFw(wettedArea, totalArea); // Use provided method to ensure fw is capped between 0 and 1
     }
 
-    public Double calculateVPD(double temperature, double humidity) {
-        double vpd = Calculators.calculateVPD(temperature, humidity);
-        return vpd;
-    }
+    //public double calculateKe(int fieldID) {
+//
+    //    //double Kcb, double humidity, double windSpeed, double De, double TEW, double REW
+//
+    //    Field field = fieldService.getFieldById(fieldID);
+//
+    //    double Kcb = field.getPlantInField().getCurrentKcValue();
+//
+    //    double humidity = field.getPlantInField().getCurrentHour().getSensorHumidity();
+    //    double windSpeed = field.getCurrentWindSpeed();
+    //    double De = field.getCurrentDeValue();
+//
+//
+    //    double KcMax = Calculators.calculateKcMax(Kcb, humidity, windSpeed);
+    //    double Kr = Calculators.calculateKr(De, TEW, REW);
+    //    double fw = calculateFw(fieldID);
+//
+    //    return Calculators.calculateKe(Kr, fw, KcMax);
+    //}
 
-
-
-    // Method to retrieve the latest depletion value
-    public DepletionData getDepletionData() {
-        return this.depletionData;
-    }
-
-    // Method to calculate Ke (Evaporation Coefficient)
-    public double calculateKe(double Kcb, double humidity, double windSpeed, double De, double TEW, double REW) {
-        double KcMax = Calculators.calculateKcMax(Kcb, humidity, windSpeed);
-        double Kr = Calculators.calculateKr(De, TEW, REW);
-        double fw = 0.5; // Example wetted fraction, adjust as needed
-
-        return Calculators.calculateKe(Kcb, Kr, fw, KcMax, De, TEW, REW);
-    }
-
-
-    public double updateDailyKc(Plant.PlantStage plantStage, Day today) {
-        return 0;
-    }
-
-    public double updateDailyKc(String string, double v) {
-        return 0;
-    }
-
-
+    //public double calculateFw(int fieldID) {
+//
+    //    Field field = fieldService.getFieldById(fieldID);
+//
+    //    //boolean isRained, double rainAmount, double timeSinceRain,
+    //    //boolean isIrrigated, double irrigationAmount, double timeSinceIrrigation,
+    //    //double totalFieldArea
+//
+    //    double wettedFieldArea = field.getCurrentWetArea();
+    //    boolean isRaining = field.getIsRaining();
+//
+//
+    //    if (isRained && rainAmount > 0) {
+    //        wettedFieldArea += (rainAmount * 0.5) / Math.max(1, timeSinceRain);
+    //    }
+//
+    //    if (isIrrigated && irrigationAmount > 0) {
+    //        wettedFieldArea += (irrigationAmount * 0.8) / Math.max(1, timeSinceIrrigation);
+    //    }
+//
+    //    wettedFieldArea = Math.min(wettedFieldArea, totalFieldArea);
+//
+//
+    //    return Calculators.calculateFw(wettedFieldArea, totalFieldArea);
+    //}
 }
