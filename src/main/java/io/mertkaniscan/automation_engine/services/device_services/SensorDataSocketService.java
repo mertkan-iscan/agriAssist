@@ -8,6 +8,7 @@ import io.mertkaniscan.automation_engine.models.SensorData;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.utils.config_loader.DeviceCommandConfigLoader;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -28,6 +29,9 @@ public class SensorDataSocketService {
 
     private static final Logger logger = LogManager.getLogger(SensorDataSocketService.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
+
+    @Value("${device.command.port}")
+    private int devicePort;
 
     private final DeviceService deviceService;
     private final SensorConfigService sensorConfigService;
@@ -75,7 +79,7 @@ public class SensorDataSocketService {
 
         for (String command : availableCommands) {
             Callable<List<T>> fetchSensorDataTask = () -> {
-                try (Socket socket = new Socket(deviceIp, 5000);
+                try (Socket socket = new Socket(deviceIp, devicePort);
                      PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                      BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
@@ -98,8 +102,10 @@ public class SensorDataSocketService {
             Future<List<T>> future = executorService.submit(fetchSensorDataTask);
 
             try {
+
                 List<T> commandData = future.get(20, TimeUnit.SECONDS);
                 allSensorData.addAll(commandData);
+
             } catch (Exception e) {
                 future.cancel(true);
                 throw new Exception("Timeout: No response from device within 20 seconds. Device ID: " + device.getDeviceID());
@@ -116,7 +122,7 @@ public class SensorDataSocketService {
             case "send_soil_moisture_data":
                 return deviceCommandConfigLoader.getPullSoilMoistureData();
             default:
-                return deviceCommandConfigLoader.getPullSensorData(); // fallback
+                return deviceCommandConfigLoader.getPullSensorData();
         }
     }
 

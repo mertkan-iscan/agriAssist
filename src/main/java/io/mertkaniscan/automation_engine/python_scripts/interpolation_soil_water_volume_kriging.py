@@ -1,16 +1,15 @@
 import json
 import numpy as np
 import pandas as pd
-from scipy.interpolate import griddata
+from pykrige.ok import OrdinaryKriging
 import matplotlib.pyplot as plt
 
-def interpolation_soil_water(data):
+def calculate_soil_water_volume(data):
     try:
         # Extract required values
         sensor_readings = np.array(data['sensor_readings'])
         radius = data['radius']
         height = data['height']
-        mode = data['mode']
         calibration_coeffs = data.get('calibration_coeffs')  # Optional
 
         # Convert sensor readings to a DataFrame
@@ -36,41 +35,36 @@ def interpolation_soil_water(data):
         distance_range = np.linspace(sensor_data["distance"].min(), sensor_data["distance"].max(), 50)
         grid_x, grid_y = np.meshgrid(distance_range, depth_range)
 
-        # Interpolate calibrated moisture values
-        grid_z_calibrated = griddata(
-            points=sensor_data[["distance", "depth"]].values,
-            values=sensor_data["calibrated_moisture"].values,
-            xi=(grid_x, grid_y),
-            method="cubic"
+        # Perform Ordinary Kriging
+        kriging_model = OrdinaryKriging(
+            sensor_data["distance"].values,
+            sensor_data["depth"].values,
+            sensor_data["calibrated_moisture"].values,
+            variogram_model="linear"
         )
 
-        # Calculate the volume based on the mode
-        if mode == "cylinder":
-            volume = np.pi * (radius**2) * height
-        elif mode == "conic":
-            volume = (1/3) * np.pi * (radius**2) * height
-        elif mode == "sphere":
-            volume = (4/3) * np.pi * (radius**3)
-        else:
-            raise ValueError("Invalid mode. Choose either 'cylinder', 'conic', or 'sphere'.")
+        grid_z_calibrated, _ = kriging_model.execute("grid", distance_range, depth_range)
 
-        # Compute average soil moisture
-        average_moisture = np.nanmean(grid_z_calibrated)
+        # Mask grid points outside the defined cylindrical volume
+        mask = (grid_x**2 + grid_y**2) <= radius**2
+        grid_z_calibrated[~mask] = np.nan
 
-        # Calculate water content in the soil
-        soil_density = 1.3  # Typical soil density in g/cm^3
-        water_weight = (average_moisture / 100) * soil_density * volume
-        total_water_liters = water_weight / 1000  # Convert to liters
+        # Integrate moisture content over the defined cylindrical volume
+        dx = distance_range[1] - distance_range[0]
+        dy = depth_range[1] - depth_range[0]
+        volume_element = dx * dy * height
+
+        total_water_volume = np.nansum(grid_z_calibrated * volume_element)
 
         return {
             "status": "success",
-            "message": "total water calculated",
-            "result": total_water_liters
+            "message": "Total water volume within the defined area calculated",
+            "result": total_water_volume  # Return total water volume
         }
 
     except Exception as e:
         return {
             "status": "error",
-            "message": f"water calculation failed: {str(e)}",
+            "message": f"calculation failed: {str(e)}",
             "result": None
         }

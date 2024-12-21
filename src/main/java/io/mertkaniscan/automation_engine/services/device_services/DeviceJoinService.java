@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
-import io.mertkaniscan.automation_engine.utils.DeviceJsonMessageFactory;
 import io.mertkaniscan.automation_engine.utils.DeviceSocketWrapper;
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.models.Field;

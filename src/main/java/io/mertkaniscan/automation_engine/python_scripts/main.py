@@ -3,7 +3,9 @@ import threading
 import time
 from tcp_server import TCPServer
 from sensor_calibration import soil_moisture_calibration
-from interpolation_soil_water import interpolation_soil_water
+from interpolation_soil_water_volume_kriging import calculate_soil_water_volume
+from percentage_soil_water_volume import calculate_soil_water_volume_from_moisture
+
 
 def is_process_running(pid):
     """Check if a process with the given PID is running."""
@@ -33,8 +35,7 @@ if __name__ == "__main__":
 
     # Register different tasks
     server.register_handler('soil_sensor_calibrator', soil_moisture_calibration)
-    server.register_handler('soil_water_calculator', interpolation_soil_water)
-
-    #server.register_handler('flower_stage_detection', detect_flower_stage)
+    server.register_handler('soil_water_percentage', calculate_soil_water_volume)
+    server.register_handler('soil_water_volume_from_calibrated_moisture', calculate_soil_water_volume_from_moisture)
 
     server.start()

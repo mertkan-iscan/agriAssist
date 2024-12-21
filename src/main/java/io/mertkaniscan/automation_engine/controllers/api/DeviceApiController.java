@@ -67,14 +67,14 @@ public class DeviceApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedDevice);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id}/update")
     public ResponseEntity<Device> updateDevice(@PathVariable int id, @RequestBody Device device) {
         Device updatedDevice = deviceService.updateDevice(id, device);
         return updatedDevice != null ? ResponseEntity.ok(updatedDevice) : ResponseEntity.notFound().build();
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDevice(@PathVariable int id) {
+    @PostMapping("/{id}/delete")
+    public ResponseEntity<Void> deleteDevicePost(@PathVariable int id) {
         boolean isDeleted = deviceService.deleteDevice(id);
         return isDeleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }

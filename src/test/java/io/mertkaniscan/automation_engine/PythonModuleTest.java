@@ -38,18 +38,30 @@ public class PythonModuleTest {
         double radius = 5.0;
         double height = 10.0;
         String mode = "sphere";
-        double[] coeffs = {1,2,3};
+        double[] coeffs = {1, 2, 3};
 
         System.out.println("Testing Soil Water Calculation Task...");
 
-        JSONObject soilWaterResponse = taskService.sendSoilWaterCalculation(
+        JSONObject soilWaterResponse = taskService.sendSoilWaterVolumeCalculation(
                 serverHost, serverPort, sensorReadings2D, radius, height, mode, coeffs);
 
         System.out.println("Soil Water Calculation Response: " + soilWaterResponse);
 
-        JSONObject soilWaterPercentageResponse = taskService.sendInterpolationSoilWaterPercentage(
-                serverHost, serverPort, sensorReadings2D, radius, height, coeffs);
+        // Test data for soil water volume from calibrated moisture
+        double[][] calibratedMoisture = {
+                {0, 0, 10.5},
+                {0, 15, 15.0},
+                {0, 30, 20.0},
+                {5, 0, 18.0},
+                {5, 15, 22.5},
+                {5, 30, 25.0}
+        };
 
-        System.out.println("Soil Water Percentage Calculation Response: " + soilWaterPercentageResponse);
+        System.out.println("Testing Soil Water Volume from Calibrated Moisture Task...");
+
+        JSONObject soilWaterFromCalibratedResponse = taskService.sendSoilWaterVolumeFromCalibratedMoisture(
+                serverHost, serverPort, calibratedMoisture, radius, height);
+
+        System.out.println("Soil Water Volume from Calibrated Moisture Response: " + soilWaterFromCalibratedResponse);
     }
 }

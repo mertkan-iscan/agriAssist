@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Sensor Data Graph</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom/dist/chartjs-plugin-zoom.min.js"></script> <!-- Include chartjs-plugin-zoom -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
 </head>
 <body>
 <h2>Sensor Data Graph for Field ID: <span th:text="${fieldID}"></span> and Type: <span th:text="${dataType}"></span></h2>
@@ -71,33 +72,32 @@
                 zoom: {
                     pan: {
                         enabled: true,
-                        mode: 'xy', // Allow panning in both x and y directions
-                        threshold: 0, // Minimum distance for panning in pixels
-                        modifierKey: 'ctrl', // No modifier key needed, use mouse drag directly
+                        mode: 'xy',
+                        modifierKey: null,
+                        threshold: 10,
                     },
                     zoom: {
                         wheel: {
-                            enabled: true, // Enable zooming with mouse wheel
+                            enabled: true,
                         },
                         pinch: {
-                            enabled: true // Enable zooming on touch devices
+                            enabled: true
                         },
-                        mode: 'xy', // Allow zooming in both x and y directions
-                        onZoom: ({ chart }) => { // Adjust time unit on zoom
+                        mode: 'xy',
+                        onZoom: ({ chart }) => {
                             const minTime = chart.scales.x.min;
                             const maxTime = chart.scales.x.max;
                             const diff = maxTime - minTime;
 
-                            // Adjust time units based on the zoom level
-                            if (diff > 365 * 24 * 60 * 60 * 1000) { // More than a year
+                            if (diff > 365 * 24 * 60 * 60 * 1000) {
                                 chart.options.scales.x.time.unit = 'year';
-                            } else if (diff > 30 * 24 * 60 * 60 * 1000) { // More than a month
+                            } else if (diff > 30 * 24 * 60 * 60 * 1000) {
                                 chart.options.scales.x.time.unit = 'month';
-                            } else if (diff > 7 * 24 * 60 * 60 * 1000) { // More than a week
+                            } else if (diff > 7 * 24 * 60 * 60 * 1000) {
                                 chart.options.scales.x.time.unit = 'week';
-                            } else if (diff > 24 * 60 * 60 * 1000) { // More than a day
+                            } else if (diff > 24 * 60 * 60 * 1000) {
                                 chart.options.scales.x.time.unit = 'day';
-                            } else if (diff > 60 * 60 * 1000) { // More than an hour
+                            } else if (diff > 60 * 60 * 1000) {
                                 chart.options.scales.x.time.unit = 'hour';
                             } else {
                                 chart.options.scales.x.time.unit = 'minute';
@@ -195,6 +195,10 @@
         selectedTimeRange = this.value; // Update the global selectedTimeRange variable
         lastFetchedTimestamp = null; // Reset the last fetched timestamp
         fetchHistoricalSensorData(); // Fetch new data based on the selected time range
+    });
+
+    document.getElementById('resetZoom').addEventListener('click', function() {
+        sensorDataChart.resetZoom();
     });
 </script>
 </body>

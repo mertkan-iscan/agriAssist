@@ -30,9 +30,9 @@ public class PythonTaskService {
         return networkService.sendData(serverHost, serverPort, json);
     }
 
-    public JSONObject sendSoilWaterCalculation(String serverHost, int serverPort, double[][] sensorReadings, double radius, double height, String mode, double[] calibrationCoeffs) {
+    public JSONObject sendSoilWaterVolumeCalculation(String serverHost, int serverPort, double[][] sensorReadings, double radius, double height, String mode, double[] calibrationCoeffs) {
         JSONObject json = new JSONObject();
-        json.put("task", "soil_water_calculator");
+        json.put("task", "soil_water_percentage");
 
         JSONObject data = new JSONObject();
         data.put("sensor_readings", new JSONArray(sensorReadings));
@@ -49,21 +49,18 @@ public class PythonTaskService {
         return networkService.sendData(serverHost, serverPort, json);
     }
 
-    public JSONObject sendInterpolationSoilWaterPercentage(String serverHost, int serverPort, double[][] sensorReadings, double radius, double height, double[] calibrationCoeffs) {
+    public JSONObject sendSoilWaterVolumeFromCalibratedMoisture(String serverHost, int serverPort, double[][] calibratedMoisture, double radius, double height) {
         JSONObject json = new JSONObject();
-        json.put("task", "interpolation_soil_water_percentage");
+        json.put("task", "soil_water_volume_from_calibrated_moisture");
 
         JSONObject data = new JSONObject();
-        data.put("sensor_readings", new JSONArray(sensorReadings));
+        data.put("calibrated_moisture", new JSONArray(calibratedMoisture));
         data.put("radius", radius);
         data.put("height", height);
 
-        if (calibrationCoeffs != null && calibrationCoeffs.length > 0) {
-            data.put("calibration_coeffs", new JSONArray(calibrationCoeffs));
-        }
-
         json.put("data", data);
 
+        logger.info("Sending request to calculate soil water volume from calibrated moisture: {}", json);
         return networkService.sendData(serverHost, serverPort, json);
     }
 }

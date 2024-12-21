@@ -21,6 +21,9 @@ public class ScheduledSensorDataFetcher {
 
     private static final Logger logger = LogManager.getLogger(ScheduledSensorDataFetcher.class);
 
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
+    private final Map<Integer, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
+
     private final DeviceService deviceService;
     private final SensorDataSocketService sensorDataSocketService;
     private final SensorDataService sensorDataService;
@@ -31,10 +34,6 @@ public class ScheduledSensorDataFetcher {
         this.sensorDataSocketService = sensorDataSocketService;
         this.sensorDataService = sensorDataService;
     }
-
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
-    private final Map<Integer, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
-
 
     public void initializeDeviceTasks() {
         List<Device> devices = deviceService.getAllDevices();
@@ -65,7 +64,9 @@ public class ScheduledSensorDataFetcher {
                     logger.info("Sensor data fetched and saved for device {}.", device.getDeviceID());
 
                     if (!"ACTIVE".equals(device.getDeviceStatus())) {
+
                         device.setDeviceStatus(Device.DeviceStatus.ACTIVE);
+
                         deviceService.updateDevice(device.getDeviceID(), device);
                     }
                 } else {

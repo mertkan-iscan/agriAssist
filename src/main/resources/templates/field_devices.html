@@ -107,6 +107,14 @@
             </form>
         </div>
 
+        <div class="button-container">
+            <form th:action="@{/api/devices/{deviceID}/delete(deviceID=${device.deviceID})}"
+                  method="post"
+                  onsubmit="return confirm('Are you sure you want to delete this device?');">
+                <button type="submit" style="background-color: #dc3545;">Delete Device</button>
+            </form>
+        </div>
+
         <!-- Button to Pull Sensor Data -->
         <div class="button-container">
             <form th:action="@{/api/fields/{fieldID}/sensor-data(fieldID=${fieldID})}" method="get">
