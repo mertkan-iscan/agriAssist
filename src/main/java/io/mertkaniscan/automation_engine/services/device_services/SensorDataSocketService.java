@@ -131,8 +131,10 @@ public class SensorDataSocketService {
     private List<SensorData> parseAndValidateSensorData(String sensorDataJson, Device device, String command) throws Exception {
         return parseSensorData(sensorDataJson, device, command, (dataType, dataValue) -> {
             SensorData sensorData = new SensorData();
-            sensorData.setDataType(dataType);
-            sensorData.setDataValue(dataValue);
+
+            // Instead of setting a single data type and value, add to the map
+            sensorData.getDataValues().put(dataType, dataValue);
+
             sensorData.setDevice(device);
             sensorData.setField(device.getField());
             return sensorData;

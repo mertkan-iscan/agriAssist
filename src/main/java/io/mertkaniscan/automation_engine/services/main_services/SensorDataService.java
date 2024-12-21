@@ -29,15 +29,6 @@ public class SensorDataService {
         return sensorDataRepository.findById(id).orElse(null);
     }
 
-    public SensorData updateSensorData(int id, SensorData sensorData) {
-        SensorData existingSensorData = getSensorDataById(id);
-        if (existingSensorData != null) {
-            existingSensorData.setDataValue(sensorData.getDataValue());
-            existingSensorData.setTimestamp(sensorData.getTimestamp());
-            return sensorDataRepository.save(existingSensorData);
-        }
-        return null;
-    }
 
     public boolean deleteSensorData(int id) {
         if (sensorDataRepository.existsById(id)) {

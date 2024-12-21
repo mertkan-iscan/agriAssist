@@ -161,19 +161,22 @@ public class HourlyTaskService {
             return null;
         }
 
-        return calculateWeightedMean(data, startOfHour);
+        return calculateWeightedMean(data, dataType, startOfHour);
     }
 
-    private Double calculateWeightedMean(List<SensorData> data, Timestamp startOfHour) {
+    private Double calculateWeightedMean(List<SensorData> data, String targetDataType, Timestamp startOfHour) {
         double total = 0.0;
         double weightSum = 0.0;
 
         for (SensorData sensor : data) {
-            double value = sensor.getDataValue();
-            double weightFactor = Math.abs(startOfHour.getTime() - sensor.getTimestamp().getTime());
+            // Check if the target data type exists in the sensor's dataValues map
+            if (sensor.getDataValues().containsKey(targetDataType)) {
+                double value = sensor.getDataValues().get(targetDataType);
+                double weightFactor = Math.abs(startOfHour.getTime() - sensor.getTimestamp().getTime());
 
-            total += value * weightFactor;
-            weightSum += weightFactor;
+                total += value * weightFactor;
+                weightSum += weightFactor;
+            }
         }
 
         return weightSum == 0 ? null : total / weightSum;
