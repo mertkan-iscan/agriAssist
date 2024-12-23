@@ -14,6 +14,6 @@ public class HourlyTaskJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) {
-        hourlyTaskService.recordHourlyData();
+        //hourlyTaskService.recordHourlyData();
     }
 }

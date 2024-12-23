@@ -26,7 +26,7 @@ public class TestController {
 
     @GetMapping("/triggerHourlyTask")
     public ResponseEntity<String> triggerHourlyTask() {
-        hourlyTaskService.recordHourlyData();
+        //hourlyTaskService.recordHourlyData();
         return ResponseEntity.ok("Hourly task triggered successfully.");
     }
 }

@@ -1,6 +1,8 @@
 package io.mertkaniscan.automation_engine.models;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
+import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -124,15 +126,6 @@ public class Field {
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("field-sensorData")
     private Set<SensorData> sensorData;
-
-    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    //@JsonManagedReference("field-solarResponses")
-    private Set<SolarResponse> solarResponses;
-
-    @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    //@JsonManagedReference("field-weatherResponses")
-    private Set<WeatherResponse> weatherResponses ;
-
 
     public Field(Integer fieldID, String fieldName, FieldType fieldType, SoilType fieldSoilType, Plant plantInField,
                  Double fieldCapacity, Double wiltingPoint, Double bulkDensity, Double saturation,

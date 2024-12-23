@@ -4,10 +4,11 @@ import io.mertkaniscan.automation_engine.models.*;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataDTO;
 import io.mertkaniscan.automation_engine.services.irrigation_services.IrrigationService;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
-import io.mertkaniscan.automation_engine.models.SolarResponse;
-import io.mertkaniscan.automation_engine.models.WeatherResponse;
+import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
+import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import io.mertkaniscan.automation_engine.services.main_services.PlantService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/fields")
+@Slf4j
 public class FieldApiController {
 
     private final PlantService plantService;
@@ -103,7 +105,7 @@ public class FieldApiController {
         try {
 
             WeatherResponse weatherResponse = fieldService.getWeatherDataByFieldId(fieldId);
-
+            log.info(weatherResponse.toString());
             return ResponseEntity.ok(weatherResponse);
 
         } catch (Exception e) {

@@ -1,14 +1,11 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.ElevationService;
+import io.mertkaniscan.automation_engine.services.weather_forecast_services.*;
 import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
 import io.mertkaniscan.automation_engine.utils.config_loader.FieldConfig;
 import io.mertkaniscan.automation_engine.models.*;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataDTO;
-import io.mertkaniscan.automation_engine.models.SolarResponse;
-import io.mertkaniscan.automation_engine.models.WeatherResponse;
 import io.mertkaniscan.automation_engine.repositories.FieldRepository;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataSocketService;
 import io.mertkaniscan.automation_engine.services.device_services.ActuatorCommandSocketService;
 import org.springframework.stereotype.Service;
@@ -28,8 +25,16 @@ public class FieldService {
     private final ElevationService elevationService;
     private final ConfigLoader configLoader;
     private final ActuatorCommandSocketService actuatorCommandSocketService;
+    private final SolarForecastService solarForecastService;
 
-    public FieldService(FieldRepository fieldRepository, DeviceService deviceService, SensorDataSocketService sensorDataSocketService, WeatherForecastService weatherForecastService, ElevationService elevationService, ConfigLoader configLoader, ActuatorCommandSocketService actuatorCommandSocketService) {
+    public FieldService(FieldRepository fieldRepository,
+                        DeviceService deviceService,
+                        SensorDataSocketService sensorDataSocketService,
+                        WeatherForecastService weatherForecastService,
+                        ElevationService elevationService,
+                        ConfigLoader configLoader,
+                        ActuatorCommandSocketService actuatorCommandSocketService,
+                        SolarForecastService solarForecastService) {
         this.fieldRepository = fieldRepository;
         this.deviceService = deviceService;
         this.sensorDataSocketService = sensorDataSocketService;
@@ -37,6 +42,7 @@ public class FieldService {
         this.elevationService = elevationService;
         this.configLoader = configLoader;
         this.actuatorCommandSocketService = actuatorCommandSocketService;
+        this.solarForecastService = solarForecastService;
     }
 
     public Field saveField(Field field) {
@@ -81,12 +87,12 @@ public class FieldService {
 
     public WeatherResponse getWeatherDataByFieldId(int fieldID) {
         Field field = getFieldById(fieldID);
-        return weatherForecastService.getAndParseWeatherData(field.getLatitude(), field.getLongitude());
+        return weatherForecastService.getWeatherDataObj(field.getLatitude(), field.getLongitude());
     }
 
     public SolarResponse getSolarDataByFieldId(int fieldID, LocalDate date) {
         Field field = getFieldById(fieldID);
-        return weatherForecastService.getAndParseSolarData(field.getLatitude(), field.getLongitude(), date);
+        return solarForecastService.getSolarData(field.getLatitude(), field.getLongitude(), date);
     }
 
     public Field updateFieldWithPlant(int fieldID, Plant plant) {
