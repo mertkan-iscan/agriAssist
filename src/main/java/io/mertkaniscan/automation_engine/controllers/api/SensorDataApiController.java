@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/sensor-data")
@@ -33,6 +35,10 @@ public class SensorDataApiController {
 
     @PostMapping
     public ResponseEntity<SensorData> createSensorData(@RequestBody SensorData sensorData) {
+        // Ensure dataValues map is initialized before saving
+        if (sensorData.getDataValues() == null || sensorData.getDataValues().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
         SensorData savedData = sensorDataService.saveSensorData(sensorData);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedData);
     }
@@ -44,7 +50,7 @@ public class SensorDataApiController {
     }
 
     @GetMapping("/{fieldID}/{dataType}")
-    public ResponseEntity<List<SensorData>> getSensorDataByFieldIDAndTypeFromDb(
+    public ResponseEntity<List<Map<String, Object>>> getSensorDataByFieldIDAndTypeFromDb(
             @PathVariable int fieldID,
             @PathVariable String dataType,
             @RequestParam(required = false) String timeRange) {
@@ -75,9 +81,17 @@ public class SensorDataApiController {
         }
 
         if (data != null && !data.isEmpty()) {
-            return ResponseEntity.ok(data);
+            List<Map<String, Object>> responseData = data.stream().map(sensorData -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("sensorDataID", sensorData.getSensorDataID());
+                map.put("timestamp", sensorData.getTimestamp());
+                map.put("dataValue", sensorData.getDataValues().get(dataType));
+                return map;
+            }).toList();
+            return ResponseEntity.ok(responseData);
         } else {
             return ResponseEntity.notFound().build();
         }
+
     }
 }

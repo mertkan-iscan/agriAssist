@@ -1,9 +1,11 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
+import io.mertkaniscan.automation_engine.components.ScheduledSensorDataFetcher;
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.utils.FetchInterval;
 import io.mertkaniscan.automation_engine.repositories.DeviceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -14,10 +16,12 @@ import java.util.Map;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
+    private final ScheduledSensorDataFetcher scheduledSensorDataFetcher;
 
     @Autowired
-    public DeviceService(DeviceRepository deviceRepository) {
+    public DeviceService(DeviceRepository deviceRepository, @Lazy ScheduledSensorDataFetcher scheduledSensorDataFetcher) {
         this.deviceRepository = deviceRepository;
+        this.scheduledSensorDataFetcher = scheduledSensorDataFetcher;
     }
 
     public Device saveDevice(Device device) {
@@ -43,6 +47,7 @@ public class DeviceService {
 
     public boolean deleteDevice(int id) {
         if (deviceRepository.existsById(id)) {
+            scheduledSensorDataFetcher.cancelExistingTask(id);
             deviceRepository.deleteById(id);
             return true;
         }
@@ -78,6 +83,7 @@ public class DeviceService {
         }
 
         Map<Double, Integer> calibrationMap = device.getCalibrationMap();
+
         if (calibrationMap == null) {
             calibrationMap = new HashMap<>();
         }

@@ -12,9 +12,11 @@ import java.util.List;
 @Repository
 public interface SensorDataRepository extends JpaRepository<SensorData, Integer> {
 
-    @Query("SELECT sd FROM SensorData sd WHERE sd.field.fieldID = :fieldID AND sd.dataType = :dataType")
+    // Query to find SensorData by field ID and data type in the map
+    @Query("SELECT sd FROM SensorData sd JOIN sd.dataValues dv WHERE sd.field.fieldID = :fieldID AND KEY(dv) = :dataType")
     List<SensorData> findByFieldIDAndDataType(@Param("fieldID") int fieldID, @Param("dataType") String dataType);
 
-    @Query("SELECT sd FROM SensorData sd WHERE sd.field.fieldID = :fieldID AND sd.dataType = :dataType AND sd.timestamp > :since ORDER BY sd.timestamp ASC")
+    // Query to find SensorData by field ID, data type, and timestamp in the map
+    @Query("SELECT sd FROM SensorData sd JOIN sd.dataValues dv WHERE sd.field.fieldID = :fieldID AND KEY(dv) = :dataType AND sd.timestamp > :since ORDER BY sd.timestamp ASC")
     List<SensorData> findByFieldIdAndTypeAndTimestampAfter(@Param("fieldID") int fieldID, @Param("dataType") String dataType, @Param("since") Timestamp since);
 }

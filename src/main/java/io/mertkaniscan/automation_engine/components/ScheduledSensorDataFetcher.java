@@ -52,40 +52,49 @@ public class ScheduledSensorDataFetcher {
     }
 
     private void fetchSensorDataForDevice(Device device) {
-        if (device.isSensor()) {
-            try {
-                List<SensorData> sensorDataList = sensorDataSocketService.fetchSensorData(device.getDeviceID());
+        if (!device.isSensor()) {
+            logger.warn("Attempted to fetch sensor data for a non-sensor device. Device ID: {}, Type: {}", device.getDeviceID(), device.getDeviceType());
+            return;
+        }
 
-                for (SensorData sensorData : sensorDataList) {
-                    sensorDataService.saveSensorData(sensorData);
-                }
+        try {
+            logger.info("Starting data fetch for device. ID: {}, IP: {}, Model: {}, Type: {}",
+                    device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel(), device.getDeviceType());
 
-                if (!sensorDataList.isEmpty()) {
-                    logger.info("Sensor data fetched and saved for device {}.", device.getDeviceID());
+            List<SensorData> sensorDataList = sensorDataSocketService.fetchSensorData(device.getDeviceID());
+            logger.debug("Fetched {} records for device ID: {}", sensorDataList.size(), device.getDeviceID());
 
-                    if (!"ACTIVE".equals(device.getDeviceStatus())) {
+            for (SensorData sensorData : sensorDataList) {
+                logger.debug("Saving sensor data for device ID: {}, Data: {}", device.getDeviceID(), sensorData);
+                sensorDataService.saveSensorData(sensorData);
+            }
 
-                        device.setDeviceStatus(Device.DeviceStatus.ACTIVE);
+            if (!sensorDataList.isEmpty()) {
+                logger.info("Successfully fetched and saved {} sensor data records for device ID: {}.", sensorDataList.size(), device.getDeviceID());
 
-                        deviceService.updateDevice(device.getDeviceID(), device);
-                    }
-                } else {
-                    logger.warn("No valid sensor data received from device {}.", device.getDeviceID());
-                }
-
-            } catch (Exception e) {
-                logger.error("Error fetching sensor data for device {}: {}", device.getDeviceID(), e.getMessage());
-
-                // If the sensor data can't be fetched, mark the device as inactive
-                if (!"INACTIVE".equals(device.getDeviceStatus())) {
-                    device.setDeviceStatus(Device.DeviceStatus.INACTIVE);
+                if (!Device.DeviceStatus.ACTIVE.equals(device.getDeviceStatus())) {
+                    logger.info("Updating device status to ACTIVE. Device ID: {}, Previous Status: {}", device.getDeviceID(), device.getDeviceStatus());
+                    device.setDeviceStatus(Device.DeviceStatus.ACTIVE);
                     deviceService.updateDevice(device.getDeviceID(), device);
                 }
+            } else {
+                logger.warn("No valid sensor data received for device ID: {}, IP: {}, Model: {}.", device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel());
+            }
+
+        } catch (Exception e) {
+            logger.error("Error fetching sensor data for device ID: {}, IP: {}, Model: {}. Error: {}",
+                    device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel(), e.getMessage(), e);
+
+            if (!Device.DeviceStatus.INACTIVE.equals(device.getDeviceStatus())) {
+                logger.warn("Marking device as INACTIVE due to error. Device ID: {}, Previous Status: {}", device.getDeviceID(), device.getDeviceStatus());
+                device.setDeviceStatus(Device.DeviceStatus.INACTIVE);
+                deviceService.updateDevice(device.getDeviceID(), device);
             }
         }
     }
 
-    private void cancelExistingTask(int deviceID) {
+
+    public void cancelExistingTask(int deviceID) {
         ScheduledFuture<?> scheduledTask = scheduledTasks.get(deviceID);
         if (scheduledTask != null && !scheduledTask.isCancelled()) {
             scheduledTask.cancel(false);

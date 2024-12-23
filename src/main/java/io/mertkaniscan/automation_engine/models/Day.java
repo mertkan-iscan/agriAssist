@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -22,26 +23,25 @@ public class Day {
     @Column(nullable = false)
     private Timestamp date;
 
-    @Column(nullable = false)
+    @Column
     private Timestamp sunrise;
 
-    @Column(nullable = false)
+    @Column
     private Timestamp sunset;
 
-    @Column(nullable = false)
+    @Column
     private Double vpd;
 
-    @Column(nullable = false)
-    private Double guessedEtoDaily = 0.0;
+    @Column
+    private Double guessedEtoDaily;
 
     @Column
-    private Double dailyDepletion; // Günlük toplam eksilme (mm)
+    private Double dailyDepletion;
 
     @OneToMany(mappedBy = "day", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("day-hours")
-    private List<Hour> hours;
+    private List<Hour> hours = new ArrayList<>();
 
-    // Many-to-One relationship, many days belong to one plant
     @ManyToOne
     @JoinColumn(name = "plantID", nullable = false)
     @JsonBackReference("plant-days")
@@ -55,13 +55,5 @@ public class Day {
 
 
     public Day() {
-    }
-
-    public Day(Timestamp date, Timestamp sunrise, Timestamp sunset, Double vpd, Plant plant) {
-        this.date = date;
-        this.sunrise = sunrise;
-        this.sunset = sunset;
-        this.vpd = vpd;
-        this.plant = plant;
     }
 }

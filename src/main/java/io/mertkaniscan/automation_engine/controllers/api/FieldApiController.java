@@ -55,6 +55,23 @@ public class FieldApiController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{fieldID}")
+    public ResponseEntity<?> updateField(@PathVariable int fieldID, @RequestBody Field updatedField) {
+        Field existingField = fieldService.getFieldById(fieldID);
+
+        if (existingField == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Field not found with ID: " + fieldID);
+        }
+
+        existingField.setFieldName(updatedField.getFieldName());
+        existingField.setFieldType(updatedField.getFieldType());
+        existingField.setFieldSoilType(updatedField.getFieldSoilType());
+        // add more
+
+        fieldService.saveField(existingField);
+        return ResponseEntity.ok(existingField);
+    }
+
     @PostMapping("/{fieldID}/add-plant")
     public ResponseEntity<?> addPlantToField(@PathVariable int fieldID, @RequestBody Plant plant) {
         // Retrieve the field by ID

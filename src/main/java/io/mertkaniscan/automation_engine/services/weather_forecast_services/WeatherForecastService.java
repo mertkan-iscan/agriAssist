@@ -148,7 +148,6 @@ public class WeatherForecastService {
                 throw new RuntimeException("Parsed solar response is null.");
             }
 
-            // Log the parsed solar response
             logger.info("Successfully parsed SolarResponse for coordinates: lat={}, lon={}, date={} - {}",
                     latitude, longitude, date, solarResponse);
 

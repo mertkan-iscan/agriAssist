@@ -3,6 +3,7 @@ package io.mertkaniscan.automation_engine.services.device_services;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import io.mertkaniscan.automation_engine.components.ScheduledSensorDataFetcher;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.utils.DeviceSocketWrapper;
 import io.mertkaniscan.automation_engine.models.Device;
@@ -23,6 +24,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,12 +41,14 @@ public class DeviceJoinService {
 
     private final DeviceService deviceService;
     private final FieldService fieldService;
+    private final ScheduledSensorDataFetcher scheduledSensorDataFetcher;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Autowired
-    public DeviceJoinService(DeviceService deviceService, FieldService fieldService, SimpMessagingTemplate messagingTemplate) {
+    public DeviceJoinService(DeviceService deviceService, FieldService fieldService, ScheduledSensorDataFetcher scheduledSensorDataFetcher, SimpMessagingTemplate messagingTemplate) {
         this.deviceService = deviceService;
         this.fieldService = fieldService;
+        this.scheduledSensorDataFetcher = scheduledSensorDataFetcher;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -127,7 +131,6 @@ public class DeviceJoinService {
 
     @Transactional
     public String acceptDevice(int deviceID, int fieldID) {
-
         DeviceSocketWrapper deviceWrapper = findDeviceSocketById(deviceID);
 
         if (deviceWrapper == null) {
@@ -141,16 +144,30 @@ public class DeviceJoinService {
             if (field == null) {
                 return "Field not found with ID: " + fieldID;
             }
+
             device.setField(field);
             device.setDeviceStatus(Device.DeviceStatus.ACTIVE);
 
-            sendDeviceJoinAcceptResponse(deviceWrapper.getSocket());
+            // Set default calibration polynomial if it's a sensor
+            if (device.isSensor()) {
+                device.setDefaultCalibrationPolynomial();
+                logger.info("Default calibration polynomial set.");
 
+                scheduledSensorDataFetcher.scheduleDeviceTask(device);
+                logger.info("Scheduled sensor data fetching for device ID: {}", deviceID);
+            }
+
+            // Save device to the database
             deviceService.saveDevice(device);
             logger.info("Device accepted and assigned to field: {}", fieldID);
 
+            // Send join accept response to the device
+            sendDeviceJoinAcceptResponse(deviceWrapper.getSocket());
+
             closeAndRemoveSocket(deviceWrapper);
+
             return "Device accepted and assigned to field: " + fieldID;
+
         } catch (Exception e) {
             logger.error("Error while accepting device.", e);
             return "Error while accepting device: " + e.getMessage();

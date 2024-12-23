@@ -1,0 +1,143 @@
+[
+  {
+    "plantType": "LETTUCE",
+    "stages": [
+      {
+        "stageName": "SEEDLING",
+        "rootZoneDepth": 0.05,
+        "allowableDepletion": 0.2,
+        "kcValue": 0.6,
+        "dayValues": {
+          "Tmax": 24.0,
+          "Tmin": 18.0,
+          "RHMax": 80.0,
+          "RHMin": 50.0
+        },
+        "nightValues": {
+          "Tmax": 20.0,
+          "Tmin": 16.0,
+          "RHMax": 90.0,
+          "RHMin": 60.0
+        }
+      },
+      {
+        "stageName": "VEGETATIVE",
+        "rootZoneDepth": 0.1,
+        "allowableDepletion": 0.3,
+        "kcValue": 1.05,
+        "dayValues": {
+          "Tmax": 26.0,
+          "Tmin": 20.0,
+          "RHMax": 75.0,
+          "RHMin": 45.0
+        },
+        "nightValues": {
+          "Tmax": 22.0,
+          "Tmin": 18.0,
+          "RHMax": 85.0,
+          "RHMin": 55.0
+        }
+      },
+      {
+        "stageName": "HARVEST",
+        "rootZoneDepth": 0.08,
+        "allowableDepletion": 0.4,
+        "kcValue": 0.95,
+        "dayValues": {
+          "Tmax": 25.0,
+          "Tmin": 19.0,
+          "RHMax": 70.0,
+          "RHMin": 40.0
+        },
+        "nightValues": {
+          "Tmax": 21.0,
+          "Tmin": 17.0,
+          "RHMax": 80.0,
+          "RHMin": 50.0
+        }
+      }
+    ]
+  },
+  {
+    "plantType": "TOMATO",
+    "stages": [
+      {
+        "stageName": "EARLY_GROWTH",
+        "rootZoneDepth": 0.2,
+        "allowableDepletion": 0.2,
+        "kcValue": 0.7,
+        "dayValues": {
+          "Tmax": 28.0,
+          "Tmin": 22.0,
+          "RHMax": 85.0,
+          "RHMin": 55.0
+        },
+        "nightValues": {
+          "Tmax": 24.0,
+          "Tmin": 20.0,
+          "RHMax": 90.0,
+          "RHMin": 60.0
+        }
+      },
+      {
+        "stageName": "FLOWERING",
+        "rootZoneDepth": 0.25,
+        "allowableDepletion": 0.3,
+        "kcValue": 1.1,
+        "dayValues": {
+          "Tmax": 30.0,
+          "Tmin": 24.0,
+          "RHMax": 80.0,
+          "RHMin": 50.0
+        },
+        "nightValues": {
+          "Tmax": 26.0,
+          "Tmin": 22.0,
+          "RHMax": 85.0,
+          "RHMin": 55.0
+        }
+      }
+    ]
+  },
+  {
+    "plantType": "BROCCOLI",
+    "stages": [
+      {
+        "stageName": "SEEDLING",
+        "rootZoneDepth": 0.05,
+        "allowableDepletion": 0.25,
+        "kcValue": 0.7,
+        "dayValues": {
+          "Tmax": 22.0,
+          "Tmin": 16.0,
+          "RHMax": 85.0,
+          "RHMin": 60.0
+        },
+        "nightValues": {
+          "Tmax": 18.0,
+          "Tmin": 14.0,
+          "RHMax": 90.0,
+          "RHMin": 65.0
+        }
+      },
+      {
+        "stageName": "VEGETATIVE",
+        "rootZoneDepth": 0.08,
+        "allowableDepletion": 0.3,
+        "kcValue": 1.1,
+        "dayValues": {
+          "Tmax": 24.0,
+          "Tmin": 18.0,
+          "RHMax": 80.0,
+          "RHMin": 55.0
+        },
+        "nightValues": {
+          "Tmax": 20.0,
+          "Tmin": 16.0,
+          "RHMax": 85.0,
+          "RHMin": 60.0
+        }
+      }
+    ]
+  }
+]

@@ -18,8 +18,11 @@ public class Hour {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int hourID;
 
-    @Column(nullable = false, unique = true)
-    private int minuteOfDay; // Gün içindeki toplam dakika (0-1439)
+    @Column
+    private int minuteOfDay;
+
+    @Column(nullable = false)
+    private int hourIndex;
 
     @Column
     private Double KeValue;
@@ -31,7 +34,7 @@ public class Hour {
     private Double REWValue;
 
     //@Column
-    //private Double soilMoisture;
+    //private Double guessedWaterVolume;
 
     @Column
     private Double sensorEToHourly;
@@ -64,7 +67,7 @@ public class Hour {
     private Double solarRadiation;
 
     @Column
-    private Double DeValue; // Buharlaşabilir su açığı (De)
+    private Double DeValue;
 
     @Column
     private LocalDateTime lastUpdated;
@@ -79,14 +82,9 @@ public class Hour {
 
     public Hour() {}
 
-    public Hour(int minuteOfDay, Double guessedEtoHourly, Day day) {
-        this.minuteOfDay = minuteOfDay;
-        this.guessedEtoHourly = guessedEtoHourly;
+    public Hour(int hourIndex, Day day) {
+        this.hourIndex = hourIndex;
         this.day = day;
-    }
-
-    public int getHour() {
-        return this.minuteOfDay / 60;
     }
 
     public int getMinute() {

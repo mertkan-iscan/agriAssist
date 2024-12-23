@@ -1,7 +1,7 @@
 [
   {
     "plantType": "LETTUCE",
-    "rootZoneDepth": 0.3,
+    "rootZoneDepth": 0.1,
     "allowableDepletion": 0.3,
     "kcValues": {
       "kcInit": 0.6,
@@ -23,7 +23,7 @@
   },
   {
     "plantType": "BROCCOLI",
-    "rootZoneDepth": 0.4,
+    "rootZoneDepth": 0.1,
     "allowableDepletion": 0.4,
     "kcValues": {
       "kcInit": 0.7,

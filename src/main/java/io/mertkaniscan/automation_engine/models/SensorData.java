@@ -2,13 +2,12 @@ package io.mertkaniscan.automation_engine.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -20,15 +19,11 @@ public class SensorData {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int sensorDataID;
 
-    @Column(nullable = false)
-    @NotNull(message = "Data type cannot be null")
-    @Size(min = 1, max = 255, message = "Data type must be between 1 and 255 characters")
-    private String dataType;
-
-    @Column(nullable = false)
-    @NotNull(message = "Data value cannot be null")
-    @Min(value = 0, message = "Data value must be non-negative")
-    private Double dataValue;
+    @ElementCollection
+    @CollectionTable(name = "sensor_data_values", joinColumns = @JoinColumn(name = "sensor_data_id"))
+    @MapKeyColumn(name = "data_type")
+    @Column(name = "data_value")
+    private Map<String, Double> dataValues = new HashMap<>();
 
     @Column(nullable = false, updatable = false)
     private Timestamp timestamp;
@@ -43,15 +38,12 @@ public class SensorData {
     @JoinColumn(name = "fieldID", nullable = false)
     private Field field;
 
+    // New field for sensor data type
+    @Column(name = "sensor_data_type", nullable = false)
+    private String sensorDataType;
+
     public SensorData() {
         // No-argument constructor for JPA
-    }
-
-    public SensorData(String dataType, Double dataValue, Timestamp timestamp, Device device) {
-        this.dataType = dataType;
-        this.dataValue = dataValue;
-        this.timestamp = timestamp;
-        this.device = device;
     }
 
     @PrePersist
@@ -65,5 +57,10 @@ public class SensorData {
         if (o == null || getClass() != o.getClass()) return false;
         SensorData that = (SensorData) o;
         return sensorDataID == that.sensorDataID;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(sensorDataID);
     }
 }

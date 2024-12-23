@@ -2,6 +2,7 @@ package io.mertkaniscan.automation_engine.controllers.api;
 
 import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
 import io.mertkaniscan.automation_engine.utils.config_loader.PlantConfig;
+import io.mertkaniscan.automation_engine.utils.config_loader.PlantConfigNew;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,10 +28,12 @@ public class PlantApiController {
 
     @GetMapping("/{plantType}/stages")
     public List<String> getPlantStages(@PathVariable String plantType) {
-        return configLoader.getPlantConfigs().stream()
+        return configLoader.getNewPlantConfigs().stream()
                 .filter(config -> config.getPlantType().equalsIgnoreCase(plantType))
                 .findFirst()
-                .map(PlantConfig::getStages)
+                .map(config -> config.getStages().stream()
+                        .map(PlantConfigNew.StageConfig::getStageName) // Extract stage names
+                        .toList())
                 .orElseThrow(() -> new RuntimeException("Plant type not found"));
     }
 }

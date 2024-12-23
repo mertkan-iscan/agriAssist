@@ -126,11 +126,11 @@ public class Field {
     private Set<SensorData> sensorData;
 
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference("field-solarResponses")
+    //@JsonManagedReference("field-solarResponses")
     private Set<SolarResponse> solarResponses;
 
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference("field-weatherResponses")
+    //@JsonManagedReference("field-weatherResponses")
     private Set<WeatherResponse> weatherResponses ;
 
 

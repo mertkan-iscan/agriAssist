@@ -3,6 +3,7 @@ package io.mertkaniscan.automation_engine.controllers.view;
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.IrrigationRequest;
+import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.services.irrigation_services.IrrigationService;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
@@ -45,6 +46,36 @@ public class FieldViewController {
     public String addField(@ModelAttribute Field field) {
         fieldService.saveField(field);
         return "redirect:/fields";
+    }
+
+    @GetMapping("/{fieldID}/edit")
+    public String showEditFieldForm(@PathVariable int fieldID, Model model) {
+        Field field = fieldService.getFieldById(fieldID);
+        if (field == null) {
+            model.addAttribute("error", "Field not found with ID: " + fieldID);
+            return "error";
+        }
+        model.addAttribute("field", field);
+        return "edit_field";
+    }
+
+    @GetMapping("/{fieldID}/edit-plant")
+    public String showEditPlantForm(@PathVariable int fieldID, Model model) {
+        Field field = fieldService.getFieldById(fieldID);
+        if (field == null) {
+            model.addAttribute("error", "Field not found with ID: " + fieldID);
+            return "error";
+        }
+
+        Plant plant = field.getPlantInField();
+        if (plant == null) {
+            model.addAttribute("error", "No plant assigned to this field.");
+            return "error";
+        }
+
+        model.addAttribute("plant", plant);
+        model.addAttribute("fieldID", fieldID);
+        return "edit_plant";
     }
 
     @GetMapping("/{fieldID}/add-plant")

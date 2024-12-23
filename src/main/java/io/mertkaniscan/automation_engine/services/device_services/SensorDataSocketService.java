@@ -7,15 +7,14 @@ import com.google.gson.JsonSyntaxException;
 import io.mertkaniscan.automation_engine.models.SensorData;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.models.Device;
+import io.mertkaniscan.automation_engine.utils.SensorReadingConverter;
 import io.mertkaniscan.automation_engine.utils.config_loader.DeviceCommandConfigLoader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -80,6 +79,7 @@ public class SensorDataSocketService {
         for (String command : availableCommands) {
             Callable<List<T>> fetchSensorDataTask = () -> {
                 try (Socket socket = new Socket(deviceIp, devicePort);
+
                      PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                      BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
@@ -135,14 +135,69 @@ public class SensorDataSocketService {
     }
 
     private List<SensorData> parseAndValidateSensorData(String sensorDataJson, Device device, String command) throws Exception {
-        return parseSensorData(sensorDataJson, device, command, (dataType, dataValue) -> {
+        List<SensorData> sensorDataList = new ArrayList<>();
+
+        try {
+            JsonObject jsonObject = JsonParser.parseString(sensorDataJson).getAsJsonObject();
+            String sensorModel = device.getDeviceModel();
+            List<String> expectedDataTypes = sensorConfigService.getExpectedDataTypesForSensorTypeAndCommand(sensorModel, command);
+            String sensorDataGroup = sensorConfigService.getGroupForSensorTypeAndCommand(sensorModel, command);
+
+            if (expectedDataTypes == null || sensorDataGroup == null) {
+                logger.warn("No configuration found for sensor type: {} and command: {}", sensorModel, command);
+                return sensorDataList;
+            }
+
             SensorData sensorData = new SensorData();
-            sensorData.setDataType(dataType);
-            sensorData.setDataValue(dataValue);
             sensorData.setDevice(device);
             sensorData.setField(device.getField());
-            return sensorData;
-        });
+            sensorData.setSensorDataType(sensorDataGroup);
+
+            for (String expectedDataType : expectedDataTypes) {
+
+                if (jsonObject.has(expectedDataType)) {
+
+                    JsonElement jsonElement = jsonObject.get(expectedDataType);
+                    double dataValue;
+
+                    if (jsonElement.isJsonPrimitive() && jsonElement.getAsJsonPrimitive().isNumber()) {
+                        dataValue = jsonElement.getAsDouble();
+                    } else {
+                        logger.warn("Data value for '{}' is not a valid number. Device ID: {}", expectedDataType, device.getDeviceID());
+                        continue;
+                    }
+
+                    // Apply soil moisture conversion for specific data types
+                    if ("soil_moisture".equalsIgnoreCase(sensorDataGroup)) {
+
+                        double convertedValue = SensorReadingConverter.convertSoilMoistureReading((int)dataValue, device.getCalibrationPolynomial());
+
+                        logger.info("converted soil moisture value: {}", convertedValue);
+                        sensorData.getDataValues().put(expectedDataType, convertedValue);
+
+                    } else if ("weather".equalsIgnoreCase(sensorDataGroup)) {
+                        if(dataValue == -1){
+                                logger.error("Invalid data value '-1' for '{}' from device ID: {}", expectedDataType, device.getDeviceID());
+                                throw new Exception("Invalid sensor data value '-1' received for data type: " + expectedDataType);
+                        }
+                        sensorData.getDataValues().put(expectedDataType, dataValue);
+                    } else {
+                        logger.info("no match for sensor data type: {}", expectedDataType);
+                        sensorData.getDataValues().put(expectedDataType, dataValue);
+                    }
+                } else {
+                    logger.warn("Expected data type '{}' not found in sensor data from device ID {}.", expectedDataType, device.getDeviceID());
+                }
+            }
+
+            if (!sensorData.getDataValues().isEmpty()) {
+                sensorDataList.add(sensorData);
+            }
+        } catch (JsonSyntaxException e) {
+            throw new Exception("Invalid JSON format received from device ID " + device.getDeviceID() + ": " + e.getMessage());
+        }
+
+        return sensorDataList;
     }
 
     private List<SensorDataDTO> parseAndValidateSensorDataValue(String sensorDataJson, Device device, String command) throws Exception {

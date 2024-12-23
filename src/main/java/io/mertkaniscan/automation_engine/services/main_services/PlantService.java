@@ -4,6 +4,7 @@ import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
 import io.mertkaniscan.automation_engine.utils.config_loader.PlantConfig;
 import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.repositories.PlantRepository;
+import io.mertkaniscan.automation_engine.utils.config_loader.PlantConfigNew;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,15 +20,24 @@ public class PlantService {
 
     public Plant savePlant(Plant plant) {
 
-        PlantConfig plantConfig = configLoader.getPlantConfigs().stream()
+        // Retrieve the plant configuration based on the plant type
+        PlantConfigNew plantConfig = configLoader.getNewPlantConfigs().stream()
                 .filter(config -> config.getPlantType().equalsIgnoreCase(plant.getPlantType().toString()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Plant type not found in configuration: " + plant.getPlantType()));
 
-        plant.setCurrentKcValue(plantConfig.getKcValues().getKcInit());
-        plant.setCurrentRootZoneDepth(plantConfig.getRootZoneDepth());
-        plant.setAllowableDepletion(plantConfig.getAllowableDepletion());
+        // Retrieve the current stage configuration
+        PlantConfigNew.StageConfig stageConfig = plantConfig.getStages().stream()
+                .filter(stage -> stage.getStageName().equalsIgnoreCase(plant.getPlantStage().toString()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Plant stage not found in configuration: " + plant.getPlantStage()));
 
+        // Set values based on the current stage configuration
+        plant.setCurrentKcValue(stageConfig.getKcValue());
+        plant.setCurrentRootZoneDepth(stageConfig.getRootZoneDepth());
+        plant.setAllowableDepletion(stageConfig.getAllowableDepletion());
+
+        // Save the plant to the repository
         return plantRepository.save(plant);
     }
 }
