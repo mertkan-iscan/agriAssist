@@ -7,31 +7,30 @@ import io.mertkaniscan.automation_engine.services.device_services.ActuatorComman
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
-import java.util.stream.Collectors;
 
 @Service
 public class IrrigationService {
-
     private final ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-    private final Map<Integer, ScheduledFuture<?>> irrigationTasks = new ConcurrentHashMap<>();
+    private final Map<Integer, List<ScheduledFuture<?>>> irrigationTasks = new ConcurrentHashMap<>();
+    private final Map<Integer, Boolean> activeIrrigations = new ConcurrentHashMap<>();
 
     private final IrrigationRepository irrigationRepository;
     private final ActuatorCommandSocketService actuatorCommandSocketService;
     private final FieldService fieldService;
 
-    public IrrigationService(IrrigationRepository irrigationRepository, ActuatorCommandSocketService actuatorCommandSocketService, FieldService fieldService) {
+    public IrrigationService(IrrigationRepository irrigationRepository,
+                             ActuatorCommandSocketService actuatorCommandSocketService,
+                             FieldService fieldService) {
         this.irrigationRepository = irrigationRepository;
         this.actuatorCommandSocketService = actuatorCommandSocketService;
         this.fieldService = fieldService;
@@ -68,11 +67,16 @@ public class IrrigationService {
                     irrigationRepository.save(request);
                 }
 
-                // Start irrigation immediately
-                processIrrigationRequest(request);
+                // Check for overlapping irrigations before processing
+                if (!hasOverlappingIrrigation(request)) {
+                    processIrrigationRequest(request);
+                } else {
+                    request.setStatus(IrrigationRequest.IrrigationStatus.FAILED);
+                    irrigationRepository.save(request);
+                    System.err.println("Skipping overlapping irrigation request with ID: " + request.getId());
+                }
 
             } catch (IllegalArgumentException e) {
-                // Log and mark invalid requests as failed
                 System.err.println("Invalid irrigation request with ID: " + request.getId() + " - " + e.getMessage());
                 request.setStatus(IrrigationRequest.IrrigationStatus.FAILED);
                 irrigationRepository.save(request);
@@ -80,27 +84,32 @@ public class IrrigationService {
         }
     }
 
+    private boolean hasOverlappingIrrigation(IrrigationRequest request) {
+        List<IrrigationRequest> existingRequests = irrigationRepository.findByFieldFieldID(request.getField().getFieldID());
+        return existingRequests.stream()
+                .filter(r -> r.getId() != request.getId()) // Exclude the current request
+                .filter(r -> r.getStatus() == IrrigationRequest.IrrigationStatus.PENDING
+                        || r.getStatus() == IrrigationRequest.IrrigationStatus.IN_PROGRESS)
+                .anyMatch(r -> {
+                    LocalDateTime newStart = request.getIrrigationStartTime();
+                    LocalDateTime newEnd = newStart.plusMinutes(request.getIrrigationDuration());
+                    LocalDateTime existingStart = r.getIrrigationStartTime();
+                    LocalDateTime existingEnd = r.getIrrigationEndTime();
+
+                    return !(newEnd.isBefore(existingStart) || newStart.isAfter(existingEnd));
+                });
+    }
 
     public List<IrrigationRequest> getScheduledIrrigationsByField(int fieldID) {
-        // Retrieve the field by its ID
         Field field = fieldService.getFieldById(fieldID);
-
         if (field == null) {
-            // Return an empty list if the field does not exist
             return new ArrayList<>();
         }
-
-        // Retrieve all irrigation requests for the given field without filtering
         return irrigationRepository.findByFieldFieldID(fieldID);
     }
 
     public void processIrrigationRequest(IrrigationRequest request) {
-
-        System.out.println("FlowRate: " + request.getFlowRate());
-        System.out.println("TotalWaterAmount: " + request.getTotalWaterAmount());
-        System.out.println("IrrigationDuration: " + request.getIrrigationDuration());
-
-        // Validate irrigation start time
+        // Validate irrigation parameters
         if (request.getIrrigationStartTime().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Irrigation start time must be in the future.");
         }
@@ -111,114 +120,144 @@ public class IrrigationService {
         if (request.getTotalWaterAmount() != null && request.getTotalWaterAmount() > 0) providedValues++;
         if (request.getIrrigationDuration() != null && request.getIrrigationDuration() > 0) providedValues++;
 
-        System.err.println("Provided values: " + providedValues);
-
-
         if (providedValues != 2) {
             throw new IllegalArgumentException("Exactly two of flowRate, totalWaterAmount, or irrigationDuration must be provided.");
         }
 
+        // Check for overlapping irrigations
+        if (hasOverlappingIrrigation(request)) {
+            throw new IllegalStateException("An irrigation is already scheduled for this time period.");
+        }
+
         // Calculate missing value
-        if (request.getFlowRate() != null && request.getFlowRate() > 0 &&
-                request.getTotalWaterAmount() != null && request.getTotalWaterAmount() > 0) {
-
+        if (request.getFlowRate() != null && request.getTotalWaterAmount() != null) {
             double durationInHours = request.getTotalWaterAmount() / request.getFlowRate();
-            int durationInMinutes = (int) Math.round(durationInHours * 60);
-            request.setIrrigationDuration(durationInMinutes);
-
-        } else if (request.getFlowRate() != null && request.getFlowRate() > 0 &&
-                request.getIrrigationDuration() != null && request.getIrrigationDuration() > 0) {
-
+            request.setIrrigationDuration((int) Math.round(durationInHours * 60));
+        } else if (request.getFlowRate() != null && request.getIrrigationDuration() != null) {
             double totalWaterAmount = request.getFlowRate() * (request.getIrrigationDuration() / 60.0);
             request.setTotalWaterAmount(totalWaterAmount);
-
-        } else if (request.getTotalWaterAmount() != null && request.getTotalWaterAmount() > 0 &&
-                request.getIrrigationDuration() != null && request.getIrrigationDuration() > 0) {
-
+        } else if (request.getTotalWaterAmount() != null && request.getIrrigationDuration() != null) {
             double flowRate = request.getTotalWaterAmount() / (request.getIrrigationDuration() / 60.0);
             request.setFlowRate(flowRate);
         }
 
-        // Calculate and set end time
+        // Set end time and status
         LocalDateTime endTime = request.getIrrigationStartTime().plusMinutes(request.getIrrigationDuration());
-
-        request.setStatus(IrrigationRequest.IrrigationStatus.PENDING);
         request.setIrrigationEndTime(endTime);
+        request.setStatus(IrrigationRequest.IrrigationStatus.PENDING);
 
         irrigationRepository.save(request);
         scheduleIrrigationTask(request);
     }
 
-
-
     private void scheduleIrrigationTask(IrrigationRequest request) {
-
         LocalDateTime now = LocalDateTime.now();
-
         Duration startDelay = Duration.between(now, request.getIrrigationStartTime());
         Duration stopDelay = Duration.between(now, request.getIrrigationEndTime());
 
-        if (!startDelay.isNegative() && !startDelay.isZero()) {
+        List<ScheduledFuture<?>> tasks = new ArrayList<>();
 
+        if (!startDelay.isNegative() && !startDelay.isZero()) {
             ScheduledFuture<?> startTask = taskScheduler.schedule(
                     () -> startIrrigation(request),
                     Instant.now().plusMillis(startDelay.toMillis())
             );
-
-            irrigationTasks.put(request.getId(), startTask);
+            tasks.add(startTask);
         }
 
         if (!stopDelay.isNegative() && !stopDelay.isZero()) {
-
-            taskScheduler.schedule(
-
+            ScheduledFuture<?> stopTask = taskScheduler.schedule(
                     () -> stopIrrigation(request),
                     Instant.now().plusMillis(stopDelay.toMillis())
             );
+            tasks.add(stopTask);
         }
+
+        irrigationTasks.put(request.getId(), tasks);
     }
 
     public void startIrrigation(IrrigationRequest request) {
         try {
+            // Check if there's already an active irrigation for this field
+            if (activeIrrigations.getOrDefault(request.getField().getFieldID(), false)) {
+                request.setStatus(IrrigationRequest.IrrigationStatus.FAILED);
+                irrigationRepository.save(request);
+                cancelScheduledTasks(request.getId());
+                System.err.println("Failed to start irrigation: Field " + request.getField().getFieldID() + " is already being irrigated");
+                return;
+            }
+
             request.setStatus(IrrigationRequest.IrrigationStatus.IN_PROGRESS);
             irrigationRepository.save(request);
 
             int fieldId = request.getField().getFieldID();
-            double flowRate = request.getFlowRate();
-
-            actuatorCommandSocketService.startIrrigation(fieldId, flowRate);
+            actuatorCommandSocketService.startIrrigation(fieldId, request.getFlowRate());
+            activeIrrigations.put(fieldId, true);
 
             System.out.println("Irrigation started for field ID: " + fieldId);
         } catch (Exception e) {
+            System.err.println("Failed to start irrigation for field ID: " +
+                    request.getField().getFieldID() + ". Error: " + e.getMessage());
+
             request.setStatus(IrrigationRequest.IrrigationStatus.FAILED);
             irrigationRepository.save(request);
-            System.err.println("Failed to start irrigation: " + e.getMessage());
+            cancelScheduledTasks(request.getId());
         }
     }
 
     private void stopIrrigation(IrrigationRequest request) {
         try {
-            actuatorCommandSocketService.stopIrrigation(request.getField().getFieldID());
+            // Don't stop irrigation if the request failed or was cancelled
+            if (request.getStatus() == IrrigationRequest.IrrigationStatus.FAILED ||
+                    request.getStatus() == IrrigationRequest.IrrigationStatus.CANCELLED) {
+                return;
+            }
+
+            int fieldId = request.getField().getFieldID();
+            actuatorCommandSocketService.stopIrrigation(fieldId);
             request.setStatus(IrrigationRequest.IrrigationStatus.COMPLETED);
             irrigationRepository.save(request);
+            activeIrrigations.remove(fieldId);
 
-            System.out.println("Irrigation stopped for field ID: " + request.getField().getFieldID());
+            System.out.println("Irrigation stopped for field ID: " + fieldId);
         } catch (Exception e) {
-            System.err.println("Failed to stop irrigation: " + e.getMessage());
+            System.err.println("Failed to stop irrigation for field ID: " +
+                    request.getField().getFieldID() + ". Error: " + e.getMessage());
+            request.setStatus(IrrigationRequest.IrrigationStatus.FAILED);
+            irrigationRepository.save(request);
+        } finally {
+            cancelScheduledTasks(request.getId());
+        }
+    }
+
+    private void cancelScheduledTasks(int requestId) {
+        List<ScheduledFuture<?>> tasks = irrigationTasks.get(requestId);
+        if (tasks != null) {
+            tasks.forEach(task -> {
+                if (task != null && !task.isCancelled()) {
+                    task.cancel(false);
+                }
+            });
+            irrigationTasks.remove(requestId);
         }
     }
 
     public void cancelIrrigation(int requestId) {
-        ScheduledFuture<?> task = irrigationTasks.get(requestId);
-        if (task != null) {
-            task.cancel(false);
-            irrigationTasks.remove(requestId);
-
-            IrrigationRequest request = irrigationRepository.findById(requestId).orElse(null);
-            if (request != null) {
-                request.setStatus(IrrigationRequest.IrrigationStatus.CANCELLED);
-                irrigationRepository.save(request);
+        IrrigationRequest request = irrigationRepository.findById(requestId).orElse(null);
+        if (request != null) {
+            // If irrigation is in progress, stop it
+            if (request.getStatus() == IrrigationRequest.IrrigationStatus.IN_PROGRESS) {
+                try {
+                    actuatorCommandSocketService.stopIrrigation(request.getField().getFieldID());
+                    activeIrrigations.remove(request.getField().getFieldID());
+                } catch (Exception e) {
+                    System.err.println("Error stopping irrigation during cancellation: " + e.getMessage());
+                }
             }
+
+            request.setStatus(IrrigationRequest.IrrigationStatus.CANCELLED);
+            irrigationRepository.save(request);
+            cancelScheduledTasks(requestId);
         }
     }
 
@@ -234,27 +273,16 @@ public class IrrigationService {
         IrrigationRequest existingRequest = irrigationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Irrigation request with ID " + id + " not found."));
 
+        // Cancel existing scheduled tasks before updating
+        cancelIrrigation(id);
+
+        // Update request properties
         existingRequest.setFlowRate(updatedRequest.getFlowRate());
         existingRequest.setTotalWaterAmount(updatedRequest.getTotalWaterAmount());
         existingRequest.setIrrigationDuration(updatedRequest.getIrrigationDuration());
         existingRequest.setIrrigationStartTime(updatedRequest.getIrrigationStartTime());
-        existingRequest.setStatus(updatedRequest.getStatus());
 
-        if (updatedRequest.getTotalWaterAmount() > 0 && updatedRequest.getFlowRate() > 0) {
-            double durationInHours = updatedRequest.getTotalWaterAmount() / updatedRequest.getFlowRate();
-            int durationInMinutes = (int) Math.round(durationInHours * 60);
-            existingRequest.setIrrigationDuration(durationInMinutes);
-        }
-
-        irrigationRepository.save(existingRequest);
-
-        if (irrigationTasks.containsKey(id)) {
-            irrigationTasks.get(id).cancel(false);
-            irrigationTasks.remove(id);
-        }
-
+        // Process the updated request as a new request
         processIrrigationRequest(existingRequest);
     }
-
-
 }
