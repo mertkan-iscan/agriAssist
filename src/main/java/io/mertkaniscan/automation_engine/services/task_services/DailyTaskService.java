@@ -9,19 +9,16 @@ import io.mertkaniscan.automation_engine.services.weather_forecast_services.Sola
 import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
 @Service
-public class DailyTaskServiceNew {
+public class DailyTaskService {
 
     private final FieldRepository fieldRepository;
     private final DayRepository dayRepository;
@@ -29,10 +26,10 @@ public class DailyTaskServiceNew {
     private final CalculatorService calculatorService;
     private final FieldService fieldService;
 
-    public DailyTaskServiceNew(FieldRepository fieldRepository,
-                               DayRepository dayRepository,
-                               WeatherForecastService weatherForecastService,
-                               CalculatorService calculatorService, FieldService fieldService) {
+    public DailyTaskService(FieldRepository fieldRepository,
+                            DayRepository dayRepository,
+                            WeatherForecastService weatherForecastService,
+                            CalculatorService calculatorService, FieldService fieldService) {
         this.fieldRepository = fieldRepository;
         this.dayRepository = dayRepository;
         this.weatherForecastService = weatherForecastService;
@@ -89,8 +86,11 @@ public class DailyTaskServiceNew {
     private void createNewDayRecord(Field field, Plant plant, Timestamp currentDate) {
         try {
             Day day = setStaticDayVariables(field, plant, currentDate);
+            day = dayRepository.save(day);
+
             createHoursForDay(day);
             dayRepository.save(day);
+
             log.info("Successfully created new Day record for plantID={} on date={}.", plant.getPlantID(), currentDate);
         } catch (Exception e) {
             log.error("Error creating daily record for field '{}': {}", field.getFieldName(), e.getMessage(), e);
@@ -111,16 +111,27 @@ public class DailyTaskServiceNew {
 
             // Create new Day entity
             Day day = new Day();
+
+            Timestamp previousDate = Timestamp.valueOf(currentDate.toLocalDateTime().minusDays(1).toLocalDate().atStartOfDay());
+            Day previousDay = dayRepository.findByPlant_PlantIDAndDate(plant.getPlantID(), previousDate);
+            double previousDepletion = (previousDay != null) ? previousDay.getDailyDepletion() : 0.0;
+
+            calculatorService.calculateDepletion();
+            day.setDailyDepletion();
+
             day.setDate(currentDate);
             day.setPlant(plant);
+
             day.setSunrise(sunrise);
             day.setSunset(sunset);
+
             day.setWeatherResponse(weatherResponse);
             day.setSolarResponse(solarResponse);
 
-            Day savedDay = dayRepository.save(day);
+            Double guessedEto = calculatorService.calculateEToDaily(weatherResponse, solarResponse, field);
+            day.setGuessedEtoDaily(guessedEto);
 
-            return savedDay;
+            return day;
 
         } catch (Exception e) {
             log.error("Error in setStaticDayVariables: {}", e.getMessage(), e);
@@ -128,6 +139,55 @@ public class DailyTaskServiceNew {
         }
     }
 
+
+    private void createHoursForDay(Day day) {
+
+        for (int hourIndex = 0; hourIndex < 24; hourIndex++) {
+
+            // Check if the hour already exists
+            int finalHourIndex = hourIndex;
+
+            boolean exists = day.getHours().stream()
+                    .anyMatch(hour -> hour.getHourIndex() == finalHourIndex);
+
+            if (!exists) {
+                // Create and add hour
+                Hour hourRecord = setStaticHourVariables(hourIndex, day);
+
+                day.getHours().add(hourRecord);
+
+                log.debug("Created hour record for hourIndex={} in Day ID={}.", hourIndex, day.getDayID());
+            }
+        }
+    }
+
+    private Hour setStaticHourVariables(int hourIndex, Day day) {
+        try {
+
+            Double forecastRH = day.getWeatherResponse().getHourly().get(hourIndex).getHumidity().doubleValue();
+            Double forecastTemp = day.getWeatherResponse().getHourly().get(hourIndex).getTemp();
+
+            Hour hourRecord = new Hour();
+            hourRecord.setHourIndex(hourIndex);
+            hourRecord.setDay(day);
+            hourRecord.setForecastTemperature(forecastTemp);
+            hourRecord.setForecastHumidity(forecastRH);
+
+            //hourRecord.setDeValue();
+            //hourRecord.setKeValue();
+            //hourRecord.setGuessedEtoHourly();
+//
+            //hourRecord.setSensorTemperature();
+            //hourRecord.setSensorHumidity();
+
+
+            return hourRecord;
+
+        } catch (Exception e) {
+            log.error("Error in setStaticDayVariables: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
 
     private void updateExistingDayRecord(Field field, Day day, Plant plant) {
         log.debug("Updating Day record for plantID={} on date={}.", plant.getPlantID(), day.getDate());
@@ -143,6 +203,7 @@ public class DailyTaskServiceNew {
                 // Create and add missing hour
                 Hour newHour = new Hour(hourIndex, day);
                 day.getHours().add(newHour);
+
                 log.info("Created missing hour record for hourIndex={} in Day ID={}.", hourIndex, day.getDayID());
             }
         }
@@ -151,19 +212,4 @@ public class DailyTaskServiceNew {
         log.info("Day record updated with missing hours for plantID={} on date={}.", plant.getPlantID(), day.getDate());
     }
 
-    private void createHoursForDay(Day day) {
-        for (int hourIndex = 0; hourIndex < 24; hourIndex++) {
-            // Check if the hour already exists
-            int finalHourIndex = hourIndex;
-            boolean exists = day.getHours().stream()
-                    .anyMatch(hour -> hour.getHourIndex() == finalHourIndex);
-
-            if (!exists) {
-                // Create and add hour
-                Hour hourRecord = new Hour(hourIndex, day);
-                day.getHours().add(hourRecord);
-                log.debug("Created hour record for hourIndex={} in Day ID={}.", hourIndex, day.getDayID());
-            }
-        }
-    }
 }

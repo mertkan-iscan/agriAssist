@@ -1,6 +1,6 @@
 package io.mertkaniscan.automation_engine.controllers.api;
 
-import io.mertkaniscan.automation_engine.services.task_services.DailyTaskServiceNew;
+import io.mertkaniscan.automation_engine.services.task_services.DailyTaskService;
 import io.mertkaniscan.automation_engine.services.task_services.HourlyTaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TestController {
 
     @Autowired
-    private DailyTaskServiceNew dailyTaskService;
+    private DailyTaskService dailyTaskService;
 
     @Autowired
     private HourlyTaskService hourlyTaskService;

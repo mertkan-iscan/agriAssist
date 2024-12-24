@@ -127,6 +127,7 @@ public class Field {
     @JsonManagedReference("field-sensorData")
     private Set<SensorData> sensorData;
 
+
     public Field(Integer fieldID, String fieldName, FieldType fieldType, SoilType fieldSoilType, Plant plantInField,
                  Double fieldCapacity, Double wiltingPoint, Double bulkDensity, Double saturation,
                  Double infiltrationRate, Double totalArea, Double latitude, Double longitude, Timestamp fieldCreationDate) {

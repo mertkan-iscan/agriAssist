@@ -6,6 +6,8 @@ import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import io.mertkaniscan.automation_engine.services.python_module_services.PythonTaskService;
+import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
+import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
 import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
 
 import io.mertkaniscan.automation_engine.utils.calculators.DailyEToCalculator;
@@ -50,24 +52,23 @@ public class CalculatorService {
 
         return Calculators.calculateTAW(field.getFieldCapacity(), field.getWiltingPoint(), plant.getCurrentRootZoneDepth());
     }
-    /**
-     * Calculates daily reference evapotranspiration (ETo) using the FAO-56 Penman-Monteith equation.
-     *
-     * @param Tmax         Maximum daily temperature (°C)
-     * @param Tmin         Minimum daily temperature (°C)
-     * @param ghi          Global horizontal irradiance (Wh/m²/day)
-     * @param windSpeed    Average daily wind speed at 2m height (m/s)
-     * @param humidity     Relative humidity (%)
-     * @param latitude     Geographical latitude (decimal degrees)
-     * @param elevation     Elevation above sea level (meters)
-     * @param pressureHpa  Atmospheric pressure (hPa or mbar)
-     * @return            Reference evapotranspiration ETo (mm/day)
-     */
-    public double calculateEToDaily(double Tmax, double Tmin, double ghi, double windSpeed,
-                                    double humidity, double latitude, double elevation, double pressureHpa) {
+
+    public double calculateEToDaily(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field) {
+
+        double Tmax = weatherResponse.getDaily().get(0).getTemp().getMax(); // Maximum temperature
+        double Tmin = weatherResponse.getDaily().get(0).getTemp().getMin(); // Minimum temperature
+        double windSpeed = weatherResponse.getDaily().get(0).getWindSpeed(); // Daily wind speed
+        double humidity = weatherResponse.getDaily().get(0).getHumidity(); // Daily humidity
+        double latitude = weatherResponse.getLat(); // Latitude
+        double pressureHpa = weatherResponse.getDaily().get(0).getPressure(); // Atmospheric pressure
+
+        double ghi = solarResponse.getIrradiance().getDaily().get(0).getClearSky().getGhi();
+
+        double elevation = field.getElevation();
+
         int dayOfYear = LocalDateTime.now().getDayOfYear();
 
-        // Log all input parameters
+
         logger.info("Input - Tmax: {}", Tmax);
         logger.info("Input - Tmin: {}", Tmin);
         logger.info("Input - GHI: {}", ghi);
@@ -140,49 +141,48 @@ public class CalculatorService {
         return Calculators.calculateFw(wettedArea, totalArea); // Use provided method to ensure fw is capped between 0 and 1
     }
 
-    //public double calculateKe(int fieldID) {
-//
-    //    //double Kcb, double humidity, double windSpeed, double De, double TEW, double REW
-//
-    //    Field field = fieldService.getFieldById(fieldID);
-//
-    //    double Kcb = field.getPlantInField().getCurrentKcValue();
-//
-    //    double humidity = field.getPlantInField().getCurrentHour().getSensorHumidity();
-    //    double windSpeed = field.getCurrentWindSpeed();
-    //    double De = field.getCurrentDeValue();
-//
-//
-    //    double KcMax = Calculators.calculateKcMax(Kcb, humidity, windSpeed);
-    //    double Kr = Calculators.calculateKr(De, TEW, REW);
-    //    double fw = calculateFw(fieldID);
-//
-    //    return Calculators.calculateKe(Kr, fw, KcMax);
-    //}
+    public double calculateKe(int fieldID) {
 
-    //public double calculateFw(int fieldID) {
-//
-    //    Field field = fieldService.getFieldById(fieldID);
-//
-    //    //boolean isRained, double rainAmount, double timeSinceRain,
-    //    //boolean isIrrigated, double irrigationAmount, double timeSinceIrrigation,
-    //    //double totalFieldArea
-//
-    //    double wettedFieldArea = field.getCurrentWetArea();
-    //    boolean isRaining = field.getIsRaining();
-//
-//
-    //    if (isRained && rainAmount > 0) {
-    //        wettedFieldArea += (rainAmount * 0.5) / Math.max(1, timeSinceRain);
-    //    }
-//
-    //    if (isIrrigated && irrigationAmount > 0) {
-    //        wettedFieldArea += (irrigationAmount * 0.8) / Math.max(1, timeSinceIrrigation);
-    //    }
-//
-    //    wettedFieldArea = Math.min(wettedFieldArea, totalFieldArea);
-//
-//
-    //    return Calculators.calculateFw(wettedFieldArea, totalFieldArea);
-    //}
+        //double Kcb, double humidity, double windSpeed, double De, double TEW, double REW
+
+        Field field = fieldService.getFieldById(fieldID);
+
+        double Kcb = field.getPlantInField().getCurrentKcValue();
+
+        double humidity = field.getPlantInField().getCurrentHour().getSensorHumidity();
+        double windSpeed = field.getCurrentWindSpeed();
+        double De = field.getCurrentDeValue();
+
+
+        double KcMax = Calculators.calculateKcMax(Kcb, humidity, windSpeed);
+        double Kr = Calculators.calculateKr(De, TEW, REW);
+        double fw = calculateFw(fieldID);
+
+        return Calculators.calculateKe(Kr, fw, KcMax);
+
+    public double calculateFw(int fieldID) {
+
+        Field field = fieldService.getFieldById(fieldID);
+
+        //boolean isRained, double rainAmount, double timeSinceRain,
+        //boolean isIrrigated, double irrigationAmount, double timeSinceIrrigation,
+        //double totalFieldArea
+
+        double wettedFieldArea = field.getCurrentWetArea();
+        boolean isRaining = field.getIsRaining();
+
+
+        if (isRained && rainAmount > 0) {
+            wettedFieldArea += (rainAmount * 0.5) / Math.max(1, timeSinceRain);
+        }
+
+        if (isIrrigated && irrigationAmount > 0) {
+            wettedFieldArea += (irrigationAmount * 0.8) / Math.max(1, timeSinceIrrigation);
+        }
+
+        wettedFieldArea = Math.min(wettedFieldArea, totalFieldArea);
+
+
+        return Calculators.calculateFw(wettedFieldArea, totalFieldArea);
+    }
 }
