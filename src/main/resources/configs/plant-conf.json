@@ -2,7 +2,7 @@
   {
     "plantType": "LETTUCE",
     "rootZoneDepth": 0.1,
-    "allowableDepletion": 0.3,
+    "allowableDepletion": 0.2,
     "kcValues": {
       "kcInit": 0.6,
       "kcMid": 1.05,

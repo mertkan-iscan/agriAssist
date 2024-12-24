@@ -131,6 +131,7 @@ public class Field {
     public Field(Integer fieldID, String fieldName, FieldType fieldType, SoilType fieldSoilType, Plant plantInField,
                  Double fieldCapacity, Double wiltingPoint, Double bulkDensity, Double saturation,
                  Double infiltrationRate, Double totalArea, Double latitude, Double longitude, Timestamp fieldCreationDate) {
+
         this.fieldID = fieldID;
         this.fieldName = fieldName;
         this.fieldType = fieldType;

@@ -1,7 +1,6 @@
 package io.mertkaniscan.automation_engine.services.logic;
 
 
-import io.mertkaniscan.automation_engine.models.DepletionData;
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
@@ -13,6 +12,7 @@ import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
 import io.mertkaniscan.automation_engine.utils.calculators.DailyEToCalculator;
 import io.mertkaniscan.automation_engine.utils.calculators.HourlyEToCalculator;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import org.apache.logging.log4j.LogManager;
@@ -20,11 +20,10 @@ import org.apache.logging.log4j.Logger;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Getter
 @Service
 public class CalculatorService {
-
-    private static final Logger logger = LogManager.getLogger(CalculatorService.class);
 
     private final FieldService fieldService;
     private final PythonTaskService pythonTaskService;
@@ -34,10 +33,10 @@ public class CalculatorService {
         this.pythonTaskService = pythonTaskService;
     }
 
-    //public double calculateRew(int fieldID){
-//
-    //    pythonTaskService.sendInterpolationSoilWaterPercentage();
-    //}
+    public double calculateRew(int fieldID){
+        pythonTaskService.sendSoilWaterVolumeFromCalibratedMoisture();
+        return 0.0;
+    }
 
     public double calculateTEW(double fieldCapacity, double fieldWiltingPoint, double plantCurrentRootDepth, double fieldMaxEvoporationdepth){
 
@@ -69,21 +68,21 @@ public class CalculatorService {
         int dayOfYear = LocalDateTime.now().getDayOfYear();
 
 
-        logger.info("Input - Tmax: {}", Tmax);
-        logger.info("Input - Tmin: {}", Tmin);
-        logger.info("Input - GHI: {}", ghi);
-        logger.info("Input - Wind Speed: {}", windSpeed);
-        logger.info("Input - Humidity: {}", humidity);
-        logger.info("Input - Latitude: {}", latitude);
-        logger.info("Input - Elevation: {}", elevation);
-        logger.info("Input - Pressure (hPa): {}", pressureHpa);
-        logger.info("Internal - Calculated Day of Year: {}", dayOfYear);
+        log.info("Input - Tmax: {}", Tmax);
+        log.info("Input - Tmin: {}", Tmin);
+        log.info("Input - GHI: {}", ghi);
+        log.info("Input - Wind Speed: {}", windSpeed);
+        log.info("Input - Humidity: {}", humidity);
+        log.info("Input - Latitude: {}", latitude);
+        log.info("Input - Elevation: {}", elevation);
+        log.info("Input - Pressure (hPa): {}", pressureHpa);
+        log.info("Internal - Calculated Day of Year: {}", dayOfYear);
 
         double eto = DailyEToCalculator.calculateEToDaily(
                 Tmax, Tmin, ghi, windSpeed, humidity, latitude, elevation, pressureHpa, dayOfYear);
 
         if (eto < 0) {
-            logger.warn("Calculated ETo (Daily) is negative! Setting to 0. Value: " + eto);
+            log.warn("Calculated ETo (Daily) is negative! Setting to 0. Value: " + eto);
             eto = 0.0;
         }
 
@@ -116,7 +115,7 @@ public class CalculatorService {
 
         // Ensure value is non-negative
         if (eto < 0) {
-            logger.warn("Calculated ETo (Hourly) is negative! Setting to 0. Value: {}", eto);
+            log.warn("Calculated ETo (Hourly) is negative! Setting to 0. Value: {}", eto);
             eto = 0.0;
         }
 
