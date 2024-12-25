@@ -3,11 +3,11 @@ package io.mertkaniscan.automation_engine.services.task_services;
 import io.mertkaniscan.automation_engine.models.*;
 import io.mertkaniscan.automation_engine.repositories.DayRepository;
 import io.mertkaniscan.automation_engine.repositories.FieldRepository;
-import io.mertkaniscan.automation_engine.services.logic.CalculatorService;
+import io.mertkaniscan.automation_engine.services.CalculatorService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherForecastService;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
+import io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service.SolarResponse;
+import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherForecastService;
+import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -111,13 +111,6 @@ public class DailyTaskService {
 
             // Create new Day entity
             Day day = new Day();
-
-            Timestamp previousDate = Timestamp.valueOf(currentDate.toLocalDateTime().minusDays(1).toLocalDate().atStartOfDay());
-            Day previousDay = dayRepository.findByPlant_PlantIDAndDate(plant.getPlantID(), previousDate);
-            double previousDepletion = (previousDay != null) ? previousDay.getDailyDepletion() : 0.0;
-
-            calculatorService.calculateDepletion();
-            day.setDailyDepletion();
 
             day.setDate(currentDate);
             day.setPlant(plant);

@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.models;
+package io.mertkaniscan.automation_engine.services.forecast_services.elevation_service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

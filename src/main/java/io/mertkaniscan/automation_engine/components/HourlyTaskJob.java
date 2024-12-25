@@ -9,11 +9,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class HourlyTaskJob implements Job {
 
-    @Autowired
-    private HourlyTaskService hourlyTaskService;
+    private final HourlyTaskService hourlyTaskService;
+
+    public HourlyTaskJob(HourlyTaskService hourlyTaskService) {
+        this.hourlyTaskService = hourlyTaskService;
+    }
 
     @Override
     public void execute(JobExecutionContext context) {
-        //hourlyTaskService.recordHourlyData();
+        hourlyTaskService.updateHourlyRecords();
     }
 }

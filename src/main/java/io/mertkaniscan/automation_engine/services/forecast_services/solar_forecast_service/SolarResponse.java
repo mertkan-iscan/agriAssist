@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.services.weather_forecast_services;
+package io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

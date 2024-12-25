@@ -9,8 +9,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class DailyTaskJob implements Job {
 
-    @Autowired
-    private DailyTaskService dailyTaskService;
+    private final DailyTaskService dailyTaskService;
+
+    public DailyTaskJob(DailyTaskService dailyTaskService) {
+        this.dailyTaskService = dailyTaskService;
+    }
 
     @Override
     public void execute(JobExecutionContext context) {

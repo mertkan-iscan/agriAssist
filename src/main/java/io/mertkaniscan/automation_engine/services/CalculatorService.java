@@ -1,12 +1,12 @@
-package io.mertkaniscan.automation_engine.services.logic;
+package io.mertkaniscan.automation_engine.services;
 
 
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import io.mertkaniscan.automation_engine.services.python_module_services.PythonTaskService;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
+import io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service.SolarResponse;
+import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
 import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
 
 import io.mertkaniscan.automation_engine.utils.calculators.DailyEToCalculator;
@@ -14,9 +14,6 @@ import io.mertkaniscan.automation_engine.utils.calculators.HourlyEToCalculator;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.time.LocalDateTime;
 
@@ -89,23 +86,22 @@ public class CalculatorService {
         return eto;
     }
 
-    /**
-     * Calculates hourly reference evapotranspiration (ETo) using the FAO-56 Penman-Monteith equation.
-     *
-     * @param temp         Current air temperature (°C)
-     * @param humidity     Current relative humidity (%)
-     * @param windSpeed    Current wind speed at 2m height (m/s)
-     * @param latitude     Geographical latitude (decimal degrees)
-     * @param elevation     Elevation above sea level (meters)
-     * @param radiation    Solar radiation (W/m²)
-     * @param pressureHpa  Atmospheric pressure (hPa or mbar)
-     * @return            Reference evapotranspiration ETo (mm/hour)
-     */
-    public double calculateEToHourly(double temp, double humidity, double windSpeed,
-                                     double latitude, double elevation, double radiation,
-                                     double pressureHpa) {
+    public double calculateEToHourly(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
+
+
+        double Tmax = weatherResponse.
+        double Tmin = weatherResponse.
+        double windSpeed = weatherResponse.
+        double humidity = weatherResponse.
+        double latitude = weatherResponse.
+        double pressureHpa = weatherResponse.
+
+        double ghi = solarResponse.getIrradiance().getHourly().get(hourIndex).getClearSky().getGhi();
+
+        double elevation = field.getElevation();
 
         int dayOfYear = LocalDateTime.now().getDayOfYear();
+
         int hour = LocalDateTime.now().getHour();
 
         boolean isDaytime = radiation > 0;
@@ -142,9 +138,9 @@ public class CalculatorService {
 
     public double calculateKe(int fieldID) {
 
-        //double Kcb, double humidity, double windSpeed, double De, double TEW, double REW
-
         Field field = fieldService.getFieldById(fieldID);
+
+        field.getPlantInField().getDays
 
         double Kcb = field.getPlantInField().getCurrentKcValue();
 
@@ -158,30 +154,12 @@ public class CalculatorService {
         double fw = calculateFw(fieldID);
 
         return Calculators.calculateKe(Kr, fw, KcMax);
+    }
 
     public double calculateFw(int fieldID) {
 
         Field field = fieldService.getFieldById(fieldID);
 
-        //boolean isRained, double rainAmount, double timeSinceRain,
-        //boolean isIrrigated, double irrigationAmount, double timeSinceIrrigation,
-        //double totalFieldArea
-
-        double wettedFieldArea = field.getCurrentWetArea();
-        boolean isRaining = field.getIsRaining();
-
-
-        if (isRained && rainAmount > 0) {
-            wettedFieldArea += (rainAmount * 0.5) / Math.max(1, timeSinceRain);
-        }
-
-        if (isIrrigated && irrigationAmount > 0) {
-            wettedFieldArea += (irrigationAmount * 0.8) / Math.max(1, timeSinceIrrigation);
-        }
-
-        wettedFieldArea = Math.min(wettedFieldArea, totalFieldArea);
-
-
-        return Calculators.calculateFw(wettedFieldArea, totalFieldArea);
+        return 0.5;
     }
 }

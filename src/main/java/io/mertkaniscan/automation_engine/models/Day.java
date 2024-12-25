@@ -2,19 +2,20 @@ package io.mertkaniscan.automation_engine.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
+import io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service.SolarResponse;
+import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Getter
 @Setter
 @Entity
@@ -104,6 +105,34 @@ public class Day {
             this.weatherResponseJson = objectMapper.writeValueAsString(weatherResponse);
         } catch (IOException e) {
             throw new RuntimeException("Failed to serialize WeatherResponse to JSON", e);
+        }
+    }
+
+    // Enhanced getter for SolarResponse
+    public SolarResponse getSolarResponseObject() {
+        if (this.solarResponseJson == null || this.solarResponseJson.isEmpty()) {
+            return null;
+        }
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(this.solarResponseJson, SolarResponse.class);
+        } catch (IOException e) {
+            log.error("Error deserializing SolarResponse JSON for Day ID {}: {}", this.dayID, e.getMessage());
+            throw new RuntimeException("Failed to deserialize SolarResponse JSON", e);
+        }
+    }
+
+    // Enhanced getter for WeatherResponse
+    public WeatherResponse getWeatherResponseObject() {
+        if (this.weatherResponseJson == null || this.weatherResponseJson.isEmpty()) {
+            return null;
+        }
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(this.weatherResponseJson, WeatherResponse.class);
+        } catch (IOException e) {
+            log.error("Error deserializing WeatherResponse JSON for Day ID {}: {}", this.dayID, e.getMessage());
+            throw new RuntimeException("Failed to deserialize WeatherResponse JSON", e);
         }
     }
 }

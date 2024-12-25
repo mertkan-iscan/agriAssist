@@ -1,14 +1,12 @@
-package io.mertkaniscan.automation_engine.services.logic;
+package io.mertkaniscan.automation_engine.services;
 
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
-import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import io.mertkaniscan.automation_engine.repositories.HourRepository;

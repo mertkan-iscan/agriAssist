@@ -1,6 +1,5 @@
-package io.mertkaniscan.automation_engine.services.weather_forecast_services;
+package io.mertkaniscan.automation_engine.services.forecast_services.elevation_service;
 
-import io.mertkaniscan.automation_engine.models.ElevationResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;

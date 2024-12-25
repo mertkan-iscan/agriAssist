@@ -22,7 +22,7 @@ public class QuartzConfig {
         return TriggerBuilder.newTrigger()
                 .forJob(dailyTaskJobDetail())
                 .withIdentity("dailyTaskTrigger")
-                .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(0, 0)) // Runs at midnight
+                .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(0, 0))
                 .build();
     }
 
@@ -39,7 +39,7 @@ public class QuartzConfig {
         return TriggerBuilder.newTrigger()
                 .forJob(hourlyTaskJobDetail())
                 .withIdentity("hourlyTaskTrigger")
-                .withSchedule(CronScheduleBuilder.cronSchedule("0 0 0-23/1 * * ?")) // Runs every hour from 00:00 to 23:00
+                .withSchedule(CronScheduleBuilder.cronSchedule("0 0 * * * ?"))
                 .build();
     }
 }

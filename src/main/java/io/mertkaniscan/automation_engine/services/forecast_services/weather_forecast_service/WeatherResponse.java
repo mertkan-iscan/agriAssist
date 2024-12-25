@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.services.weather_forecast_services;
+package io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;

@@ -1,7 +1,6 @@
-package io.mertkaniscan.automation_engine.services.weather_forecast_services;
+package io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

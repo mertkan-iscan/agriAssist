@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <title>Scheduled Irrigations</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
 <div class="container">
     <h2 class="mt-4">Scheduled Irrigations for <span th:text="${field.fieldName}"></span></h2>
+
+    <div id="alertContainer"></div>
 
     <table class="table table-bordered mt-3">
         <thead>
@@ -19,6 +22,7 @@
             <th>Flow Rate</th>
             <th>Duration</th>
             <th>Status</th>
+            <th>Actions</th>
         </tr>
         </thead>
         <tbody>
@@ -30,11 +34,82 @@
             <td th:text="${irrigation.flowRate}"></td>
             <td th:text="${irrigation.irrigationDuration}"></td>
             <td th:text="${irrigation.status}">Scheduled</td>
+            <td>
+                <div class="btn-group">
+                    <button class="btn btn-warning btn-sm cancel-irrigation mr-1"
+                            th:data-id="${irrigation.id}"
+                            th:onclick="'cancelIrrigation(' + ${irrigation.id} + ')'">
+                        <i class="fas fa-ban"></i> Cancel
+                    </button>
+                    <button class="btn btn-danger btn-sm delete-irrigation"
+                            th:data-id="${irrigation.id}"
+                            th:onclick="'deleteAndCancelIrrigation(' + ${irrigation.id} + ')'">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </td>
         </tr>
         </tbody>
     </table>
 
     <a th:href="@{/fields}" class="btn btn-primary">Back to Field List</a>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function showAlert(message, type) {
+        const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    `;
+        document.getElementById('alertContainer').innerHTML = alertHtml;
+    }
+
+    function cancelIrrigation(id) {
+        if (confirm('Are you sure you want to cancel this irrigation? The record will be kept in the database.')) {
+            fetch(`/api/irrigation/delete/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.text())
+                .then(data => {
+                    showAlert('Irrigation cancelled successfully', 'success');
+                    location.reload(); // Reload to show updated status
+                })
+                .catch(error => {
+                    showAlert('Error cancelling irrigation: ' + error.message, 'danger');
+                });
+        }
+    }
+
+    function deleteAndCancelIrrigation(id) {
+        if (confirm('Are you sure you want to delete this irrigation? This will cancel the irrigation and remove it from the database.')) {
+            fetch(`/api/irrigation/delete-and-cancel/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.text())
+                .then(data => {
+                    showAlert('Irrigation deleted successfully', 'success');
+                    // Remove the row from the table
+                    const row = document.querySelector(`button[data-id="${id}"]`).closest('tr');
+                    row.remove();
+                })
+                .catch(error => {
+                    showAlert('Error deleting irrigation: ' + error.message, 'danger');
+                });
+        }
+    }
+</script>
 </body>
 </html>

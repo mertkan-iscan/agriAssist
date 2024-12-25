@@ -1,10 +1,10 @@
 package io.mertkaniscan.automation_engine;
 
 import io.mertkaniscan.automation_engine.models.Field;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
+import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
 import io.mertkaniscan.automation_engine.repositories.FieldRepository;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherForecastService;
+import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

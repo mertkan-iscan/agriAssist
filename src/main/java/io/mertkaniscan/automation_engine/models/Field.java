@@ -1,8 +1,6 @@
 package io.mertkaniscan.automation_engine.models;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.SolarResponse;
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.WeatherResponse;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,6 +1,10 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
-import io.mertkaniscan.automation_engine.services.weather_forecast_services.*;
+import io.mertkaniscan.automation_engine.services.forecast_services.elevation_service.ElevationService;
+import io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service.SolarForecastService;
+import io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service.SolarResponse;
+import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherForecastService;
+import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
 import io.mertkaniscan.automation_engine.utils.config_loader.ConfigLoader;
 import io.mertkaniscan.automation_engine.utils.config_loader.FieldConfig;
 import io.mertkaniscan.automation_engine.models.*;
