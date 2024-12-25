@@ -36,13 +36,21 @@ public class ScheduledSensorDataFetcher {
     }
 
     public void initializeDeviceTasks() {
-        List<Device> devices = deviceService.getAllDevices();
+        List<Device> devices = deviceService.getAllDevices()
+                .stream()
+                .filter(Device::isSensor)
+                .toList();
         for (Device device : devices) {
             scheduleDeviceTask(device);
         }
     }
 
     public void scheduleDeviceTask(Device device) {
+        if (!device.isSensor()) {
+            logger.warn("Attempted to schedule task for non-sensor device. Device ID: {}, Type: {}", device.getDeviceID(), device.getDeviceType());
+            return;
+        }
+
         FetchInterval interval = device.getFetchInterval() != null ? device.getFetchInterval() : FetchInterval.ONE_MINUTE;
 
         cancelExistingTask(device.getDeviceID());
@@ -103,11 +111,15 @@ public class ScheduledSensorDataFetcher {
     }
 
     public void rescheduleDeviceTask(int deviceID, FetchInterval newInterval) {
-        // Fetch the device and update its interval
+
         Device device = deviceService.getDeviceById(deviceID);
-        if (device != null) {
-            device.setFetchInterval(newInterval);
-            scheduleDeviceTask(device);
+
+        if (device == null || !device.isSensor()) {
+            logger.warn("Attempted to reschedule task for non-sensor device or invalid device ID. Device ID: {}", deviceID);
+            return;
         }
+
+        device.setFetchInterval(newInterval);
+        scheduleDeviceTask(device);
     }
 }
