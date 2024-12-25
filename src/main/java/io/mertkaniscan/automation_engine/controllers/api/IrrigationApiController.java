@@ -2,6 +2,7 @@ package io.mertkaniscan.automation_engine.controllers.api;
 
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.IrrigationRequest;
+import io.mertkaniscan.automation_engine.repositories.IrrigationRepository;
 import io.mertkaniscan.automation_engine.services.irrigation_services.IrrigationService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import org.springframework.http.ResponseEntity;
@@ -14,10 +15,12 @@ import java.util.List;
 public class IrrigationApiController {
 
     private final IrrigationService irrigationService;
+    private final IrrigationRepository irrigationRepository;
     private final FieldService fieldService;
 
-    public IrrigationApiController(IrrigationService irrigationService, FieldService fieldService) {
+    public IrrigationApiController(IrrigationService irrigationService, IrrigationRepository irrigationRepository, FieldService fieldService) {
         this.irrigationService = irrigationService;
+        this.irrigationRepository = irrigationRepository;
         this.fieldService = fieldService;
     }
 
@@ -69,6 +72,19 @@ public class IrrigationApiController {
             return ResponseEntity.ok("Irrigation request canceled successfully.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error canceling irrigation request: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/delete-and-cancel/{id}")
+    public ResponseEntity<String> deleteAndCancelIrrigation(@PathVariable int id) {
+        try {
+            // First cancel the irrigation
+            irrigationService.cancelIrrigation(id);
+            // Then delete the record
+            irrigationRepository.deleteById(id);
+            return ResponseEntity.ok("Irrigation request deleted and cancelled successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error deleting irrigation request: " + e.getMessage());
         }
     }
 
