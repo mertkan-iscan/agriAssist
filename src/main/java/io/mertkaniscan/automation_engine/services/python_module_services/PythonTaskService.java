@@ -63,4 +63,20 @@ public class PythonTaskService {
         logger.info("Sending request to calculate soil water volume from calibrated moisture: {}", json);
         return networkService.sendData(serverHost, serverPort, json);
     }
+
+    public JSONObject sendSoilWaterPercentageFromCalibratedMoisture(String serverHost, int serverPort, double[][] calibratedMoisture, double radius, double height) {
+        JSONObject json = new JSONObject();
+        json.put("task", "soil_water_percentage_from_calibrated_moisture");
+
+        JSONObject data = new JSONObject();
+        data.put("calibrated_moisture", new JSONArray(calibratedMoisture));
+        data.put("radius", radius);
+        data.put("height", height);
+
+        json.put("data", data);
+
+        logger.info("Sending request to calculate soil water percentage from calibrated moisture: {}", json);
+        return networkService.sendData(serverHost, serverPort, json);
+    }
+
 }

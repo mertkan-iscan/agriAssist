@@ -49,4 +49,19 @@ public class SensorDataService {
         Timestamp since = new Timestamp(System.currentTimeMillis() - (days * 24 * 60 * 60 * 1000L));
         return sensorDataRepository.findByFieldIdAndTypeAndTimestampAfter(fieldID, dataType, since);
     }
+
+    public double getMeanSensorDataByFieldIDAndType(int fieldID, String dataType, int days) {
+        // Fetch data within the given timeframe
+        List<SensorData> sensorDataList = getSensorDataByFieldIDAndTypeWithinLastDaysFromDb(fieldID, dataType, days);
+
+        if (sensorDataList == null || sensorDataList.isEmpty()) {
+            return 0.0;
+        }
+
+        return sensorDataList.stream()
+                .mapToDouble(sensorData -> sensorData.getDataValues()
+                        .getOrDefault(dataType, 0.0))
+                .average()
+                .orElse(0.0);
+    }
 }

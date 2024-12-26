@@ -6,13 +6,13 @@ import static io.mertkaniscan.automation_engine.utils.calculators.DailyEToCalcul
 public class CalcuatorTest {
     public static void main(String[] args) {
 
-        double Tmax = 8.15; // Maximum temperature (°C)
-        double Tmin = 5.19; // Minimum temperature (°C)
+        double Tmax = 25; // Maximum temperature (°C)
+        double Tmin = 23.2; // Minimum temperature (°C)
         double ghi = 600; // Global horizontal irradiance (Wh/m²/day)
-        double windSpeed = 6.09; // Wind speed (m/s)
-        double humidity = 60; // Relative humidity (%)
+        double windSpeed = 0; // Wind speed (m/s)
+        double humidity = 55; // Relative humidity (%)
         double latitude = 40.64; // Latitude (degrees)
-        double elevation = 100; // Elevation (meters)
+        double elevation = 0.0; // Elevation (meters)
         int dayOfYear = 349; // Day of year (Julian day)
         double pressure = 1033;
 
@@ -32,5 +32,4 @@ public class CalcuatorTest {
         // Print the result
         System.out.println("Calculated ETo (mm/day): " + eto);
     }
-
 }

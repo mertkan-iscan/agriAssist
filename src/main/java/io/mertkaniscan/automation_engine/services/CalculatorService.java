@@ -30,35 +30,21 @@ public class CalculatorService {
         this.pythonTaskService = pythonTaskService;
     }
 
-    public double calculateRew(int fieldID){
-        pythonTaskService.sendSoilWaterVolumeFromCalibratedMoisture();
-        return 0.0;
-    }
-
-    public double calculateTEW(double fieldCapacity, double fieldWiltingPoint, double plantCurrentRootDepth, double fieldMaxEvoporationdepth){
-
-        double Ze = Math.min(plantCurrentRootDepth, fieldMaxEvoporationdepth);
-
-        return Calculators.calculateTEW(fieldCapacity, fieldWiltingPoint, Ze);
-    }
-
-    public double calculateTAW(int fieldID){
-        Field field = fieldService.getFieldById(fieldID);
-        Plant plant = field.getPlantInField();
-
-        return Calculators.calculateTAW(field.getFieldCapacity(), field.getWiltingPoint(), plant.getCurrentRootZoneDepth());
-    }
-
     public double calculateEToDaily(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field) {
 
-        double Tmax = weatherResponse.getDaily().get(0).getTemp().getMax(); // Maximum temperature
-        double Tmin = weatherResponse.getDaily().get(0).getTemp().getMin(); // Minimum temperature
-        double windSpeed = weatherResponse.getDaily().get(0).getWindSpeed(); // Daily wind speed
-        double humidity = weatherResponse.getDaily().get(0).getHumidity(); // Daily humidity
-        double latitude = weatherResponse.getLat(); // Latitude
-        double pressureHpa = weatherResponse.getDaily().get(0).getPressure(); // Atmospheric pressure
+        double Tmax = weatherResponse.getDaily().get(0).getTemp().getMax();
+        double Tmin = weatherResponse.getDaily().get(0).getTemp().getMin();
 
-        double ghi = solarResponse.getIrradiance().getDaily().get(0).getClearSky().getGhi();
+        double humidity = weatherResponse.getDaily().get(0).getHumidity();
+        double latitude = weatherResponse.getLat();
+        double pressureHpa = weatherResponse.getDaily().get(0).getPressure();
+
+        int cloudCoverage = weatherResponse.getDaily().get(0).getClouds();
+        double clearSkyGHI = solarResponse.getIrradiance().getDaily().get(0).getClearSky().getGhi();
+        double cloudySkyGHI = solarResponse.getIrradiance().getDaily().get(0).getCloudySky().getGhi();
+        double ghi = calculateGHI(clearSkyGHI, cloudySkyGHI, cloudCoverage);
+
+        double windSpeed = getDailyWindSpeed(field, weatherResponse);
 
         double elevation = field.getElevation();
 
@@ -79,7 +65,7 @@ public class CalculatorService {
                 Tmax, Tmin, ghi, windSpeed, humidity, latitude, elevation, pressureHpa, dayOfYear);
 
         if (eto < 0) {
-            log.warn("Calculated ETo (Daily) is negative! Setting to 0. Value: " + eto);
+            log.warn("Calculated ETo (Daily) is negative! Setting to 0. Value: {}", eto);
             eto = 0.0;
         }
 
@@ -89,25 +75,30 @@ public class CalculatorService {
     public double calculateEToHourly(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
 
 
-        double Tmax = weatherResponse.
-        double Tmin = weatherResponse.
-        double windSpeed = weatherResponse.
-        double humidity = weatherResponse.
-        double latitude = weatherResponse.
-        double pressureHpa = weatherResponse.
+        double temp = weatherResponse.getHourly().get(hourIndex).getTemp();
+        double humidity = weatherResponse.getHourly().get(hourIndex).getHumidity();
+        double latitude = field.getLatitude();
+        double pressureHpa = weatherResponse.getHourly().get(hourIndex).getPressure();
 
-        double ghi = solarResponse.getIrradiance().getHourly().get(hourIndex).getClearSky().getGhi();
+        int cloudCoverage = weatherResponse.getHourly().get(hourIndex).getClouds();
+        double clearSkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getClearSky().getGhi();
+        double cloudySkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getCloudySky().getGhi();
+        double ghi = calculateGHI(clearSkyGHI, cloudySkyGHI, cloudCoverage);
+
+        double windSpeed = getHourlyWindSpeed(field, weatherResponse, hourIndex);
 
         double elevation = field.getElevation();
 
+        // Calculate day of the year and the current hour
         int dayOfYear = LocalDateTime.now().getDayOfYear();
-
         int hour = LocalDateTime.now().getHour();
 
-        boolean isDaytime = radiation > 0;
+        // Determine if it's daytime based on solar radiation
+        boolean isDaytime = ghi > 0;
 
+        // Use the HourlyEToCalculator to calculate ETo
         double eto = HourlyEToCalculator.calculateEToHourly(
-                temp, humidity, windSpeed, latitude, elevation, dayOfYear, hour, radiation, pressureHpa, isDaytime);
+                temp, humidity, ghi, windSpeed, latitude, elevation, pressureHpa, dayOfYear, hour, isDaytime);
 
         // Ensure value is non-negative
         if (eto < 0) {
@@ -118,48 +109,91 @@ public class CalculatorService {
         return eto;
     }
 
-    /**
-     * Calculates the wetted area fraction (fw) for drip irrigation.
-     *
-     * @param irrigationDuration The duration of irrigation in hours
-     * @param emitterRate        The emitter rate of drip irrigation in L/hour
-     * @param totalArea          The total area of the field in square meters
-     * @return The calculated wetted area fraction (fw)
-     */
-    private double calculateFwForDripIrrigation(double irrigationDuration, double emitterRate, double totalArea) {
-        // Estimate wetted area using emitter rate and irrigation time
-        // Example calculation: Assume a standard radius of wetting per emitter
-        double waterVolume = irrigationDuration * emitterRate; // Total water volume in liters
-        double wettedArea = waterVolume / 10.0; // Convert to approximate m² (assumption: 1 liter covers ~10m²).
-
-        // Return fraction of wetted area
-        return Calculators.calculateFw(wettedArea, totalArea); // Use provided method to ensure fw is capped between 0 and 1
+    public double getHourlyWindSpeed(Field field, WeatherResponse weatherResponse, int hourIndex) {
+        if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
+            return 0.0;
+        }
+        return weatherResponse.getHourly().get(hourIndex).getWindSpeed();
     }
 
-    public double calculateKe(int fieldID) {
+    public double getDailyWindSpeed(Field field, WeatherResponse weatherResponse) {
+        if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
+            return 0.0;
+        }
+        return weatherResponse.getDaily().get(0).getWindSpeed();
+    }
 
-        Field field = fieldService.getFieldById(fieldID);
+    public double calculateKe(Field field) {
 
-        field.getPlantInField().getDays
+        double Kcb = 0;
 
-        double Kcb = field.getPlantInField().getCurrentKcValue();
-
-        double humidity = field.getPlantInField().getCurrentHour().getSensorHumidity();
-        double windSpeed = field.getCurrentWindSpeed();
-        double De = field.getCurrentDeValue();
-
+        double humidity = 0;
+        double windSpeed = 0;
+        double De = 0;
+        double TEW = 0;
+        double REW = 0;
 
         double KcMax = Calculators.calculateKcMax(Kcb, humidity, windSpeed);
         double Kr = Calculators.calculateKr(De, TEW, REW);
-        double fw = calculateFw(fieldID);
+        double fw = calculateFw();
 
         return Calculators.calculateKe(Kr, fw, KcMax);
     }
 
-    public double calculateFw(int fieldID) {
+    public double calculateTEW(Field field){
 
-        Field field = fieldService.getFieldById(fieldID);
+        double fieldCapacity = field.getFieldCapacity();
+        double fieldWiltingPoint = field.getWiltingPoint();
+        double plantCurrentRootDepth = field.getPlantInField().getCurrentRootZoneDepth();
+        double fieldMaxEvoporationdepth = field.getMaxEvaporationDepth();
 
+        double Ze = Math.min(plantCurrentRootDepth, fieldMaxEvoporationdepth);
+
+        return Calculators.calculateTEW(fieldCapacity, fieldWiltingPoint, Ze);
+    }
+
+    public double calculateRew(Field field){
+        //pythonTaskService.sendSoilWaterVolumeFromCalibratedMoisture();
+        return 0.0;
+    }
+
+    public double calculateTAW(Field field){
+
+        Plant plant = field.getPlantInField();
+
+        return Calculators.calculateTAW(field.getFieldCapacity(), field.getWiltingPoint(), plant.getCurrentRootZoneDepth());
+    }
+
+    public double calculateSensorTAW(Field field){
+
+        Plant plant = field.getPlantInField();
+
+        double sensorMoisture = 0.0;
+        return Calculators.calculateTAW(sensorMoisture, field.getWiltingPoint(), plant.getCurrentRootZoneDepth());
+    }
+
+    private double calculateFwForDripIrrigation(double irrigationDuration, double emitterRate, double totalArea) {
+        double waterVolume = irrigationDuration * emitterRate;
+        double wettedArea = waterVolume / 10.0;
+
+        return Calculators.calculateFw(wettedArea, totalArea);
+    }
+
+    public double calculateFw() {
         return 0.5;
+    }
+
+    public double calculateGHI(double clearSkyGHI, double cloudySkyGHI, int cloudCoverage) {
+        if (cloudCoverage < 0 || cloudCoverage > 100) {
+            throw new IllegalArgumentException("Cloud coverage must be between 0 and 100.");
+        }
+
+        // Calculate GHI based on cloud coverage
+        double ghi = (1 - (cloudCoverage / 100.0)) * clearSkyGHI + (cloudCoverage / 100.0) * cloudySkyGHI;
+
+        log.info("Calculated GHI: {} (Clear Sky GHI: {}, Cloudy Sky GHI: {}, Cloud Coverage: {}%)",
+                ghi, clearSkyGHI, cloudySkyGHI, cloudCoverage);
+
+        return ghi;
     }
 }

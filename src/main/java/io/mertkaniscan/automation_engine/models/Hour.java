@@ -37,6 +37,9 @@ public class Hour {
     //private Double guessedWaterVolume;
 
     @Column
+    private Double forecastEToHourly;
+
+    @Column
     private Double sensorEToHourly;
 
     @Column

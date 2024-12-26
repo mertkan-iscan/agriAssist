@@ -5,6 +5,7 @@ from tcp_server import TCPServer
 from sensor_calibration import soil_moisture_calibration
 from interpolation_soil_water_volume_kriging import calculate_soil_water_volume
 from percentage_soil_water_volume import calculate_soil_water_volume_from_moisture
+from percentage_soil_water_volume import calculate_soil_water_percentage
 
 
 def is_process_running(pid):
@@ -37,5 +38,6 @@ if __name__ == "__main__":
     server.register_handler('soil_sensor_calibrator', soil_moisture_calibration)
     server.register_handler('soil_water_percentage', calculate_soil_water_volume)
     server.register_handler('soil_water_volume_from_calibrated_moisture', calculate_soil_water_volume_from_moisture)
+    server.register_handler('soil_water_percentage_from_calibrated_moisture', calculate_soil_water_percentage)
 
     server.start()

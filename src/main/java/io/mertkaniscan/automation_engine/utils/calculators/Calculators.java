@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 public class Calculators {
 
     public static double calculateETcDual(double Kcb, double Ke, double ETo) {
-        return ETo * (Kcb + Ke); // ETc in mm/day
+        return ETo * (Kcb + Ke);
     }
 
     public static double calculateVPD(double temperature, double humidity) {
@@ -21,13 +21,13 @@ public class Calculators {
         return Math.min(Kr * KcMax, fw * KcMax);
     }
 
-    public static double calculateKr(double De, double TEW, double REW) {
-        if (De > TEW) {
+    public static double calculateKr(double evaporationDeficit, double TEW, double REW) {
+        if (evaporationDeficit > TEW) {
             return 0.0;
-        } else if (De <= REW) {
+        } else if (evaporationDeficit <= REW) {
             return 1.0;
         } else {
-            return (TEW - De) / (TEW - REW);
+            return (TEW - evaporationDeficit) / (TEW - REW);
         }
     }
 
@@ -64,12 +64,16 @@ public class Calculators {
         return (FieldCapacity - WiltingPoint) * Ze;
     }
 
-    public static double calculateREW(double TEW) {
-        return Math.min(TEW / 2, 20); // Capped at 20 mm
+    public static double calculateREW(double TEW, double Kr) {
+        return TEW * Kr;
     }
 
-    public static double calculateTAW(double FieldCapacity, double WiltingPoint, double RZD) {
-        return (FieldCapacity - WiltingPoint) * RZD;
+    public static double calculateTAW(double SoilMoisture, double WiltingPoint, double RZD) {
+        return (SoilMoisture - WiltingPoint) * RZD;
+    }
+
+    public static double calculateSensorTAW(double SensorMoisture, double WiltingPoint, double RZD) {
+        return (SensorMoisture - WiltingPoint) * RZD;
     }
 
     public static double calculateRAW(double TAW, double AD) {

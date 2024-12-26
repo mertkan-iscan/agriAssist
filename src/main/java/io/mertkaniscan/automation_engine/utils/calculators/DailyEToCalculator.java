@@ -17,14 +17,20 @@ public class DailyEToCalculator {
      * @param windSpeed    Average daily wind speed at 2m height (m/s)
      * @param humidity     Relative humidity (%)
      * @param latitude     Geographical latitude (decimal degrees)
-     * @param altitude     Elevation above sea level (meters)
+     * @param elevation     Elevation above sea level (meters)
      * @param pressureHpa  Atmospheric pressure (hPa or mbar)
      * @param dayOfYear    Day of year (1-365)
      * @return            Reference evapotranspiration ETo (mm/day)
      */
-    public static double calculateEToDaily(double Tmax, double Tmin, double ghi, double windSpeed,
-                                           double humidity, double latitude, double altitude,
-                                           double pressureHpa, int dayOfYear) {
+    public static double calculateEToDaily(double Tmax,
+                                           double Tmin,
+                                           double ghi,
+                                           double windSpeed,
+                                           double humidity,
+                                           double latitude,
+                                           double elevation,
+                                           double pressureHpa,
+                                           int dayOfYear) {
 
         // Convert GHI from Wh/m²/day to MJ/m²/day
         double ghiMJ = ghi * 0.0036;
@@ -41,15 +47,13 @@ public class DailyEToCalculator {
         double ea = es * (humidity / 100.0);
         double vpd = es - ea;
 
-        double Rso = calculateRso(latitude, altitude, dayOfYear);
+        double Rso = calculateRso(latitude, elevation, dayOfYear);
         double netRadiation = calculateDetailedNetRadiation(Tmax, Tmin, ea, ghiMJ, Rso);
 
         double tempTerm = (900 / ((Tmax + Tmin) / 2 + 273)) * windSpeed * vpd;
 
         return (0.408 * delta * netRadiation + gamma * tempTerm) / (delta + gamma * (1 + 0.34 * windSpeed));
     }
-
-
 
     public static double calculateDetailedNetRadiation(double Tmax, double Tmin, double ea,
                                                        double ghiMJ, double Rso) {

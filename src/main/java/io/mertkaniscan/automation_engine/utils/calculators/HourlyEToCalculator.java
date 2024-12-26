@@ -14,17 +14,24 @@ public class HourlyEToCalculator {
      * @param elevation     Elevation above sea level (meters)
      * @param dayOfYear    Day of year (1-365)
      * @param hour        Hour of the day (0-23)
-     * @param radiation    Solar radiation (W/m²)
+     * @param ghi    Solar radiation (W/m²)
      * @param pressureHpa  Atmospheric pressure (hPa or mbar)
      * @param isDaytime    Boolean indicating whether it is daytime (true) or nighttime (false)
      * @return            Reference evapotranspiration ETo (mm/hour)
      */
-    public static double calculateEToHourly(double temp, double humidity, double windSpeed,
-                                            double latitude, double elevation, int dayOfYear, int hour,
-                                            double radiation, double pressureHpa, boolean isDaytime) {
+    public static double calculateEToHourly(double temp,
+                                            double humidity,
+                                            double ghi,
+                                            double windSpeed,
+                                            double latitude,
+                                            double elevation,
+                                            double pressureHpa,
+                                            int dayOfYear,
+                                            int hour,
+                                            boolean isDaytime) {
 
         // Convert radiation from W/m² to MJ/m²/hour
-        double radiationMJ = radiation * 0.0036;
+        double radiationMJ = ghi * 0.0036;
 
         // Convert pressure from hPa to kPa
         double pressureKpa = pressureHpa / 10.0;
@@ -42,7 +49,7 @@ public class HourlyEToCalculator {
                 / Math.pow((temp + 237.3), 2);
 
         // Calculate hourly clear sky radiation
-        double Rso = calculateHourlyRso(latitude, elevation, dayOfYear, hour);
+        double Rso = Math.max(calculateHourlyRso(latitude, elevation, dayOfYear, hour), 0.01);
 
         // Net radiation
         double Rn = calculateHourlyNetRadiation(radiationMJ, temp, ea, Rso);
@@ -80,7 +87,7 @@ public class HourlyEToCalculator {
                 Math.cos(phi) * Math.cos(delta) * Math.cos(omega);
 
         if (cosZ <= 0) {
-            return 0.0; // Night time
+            return 0.01; // Minimum non-zero value to ensure validity
         }
 
         // Hourly extraterrestrial radiation
@@ -97,7 +104,7 @@ public class HourlyEToCalculator {
 
         // Net longwave radiation (MJ/m²/hour)
         double TK = temp + 273.16;
-        double radiationRatio = Math.min(radiation / Math.max(Rso, 0.0001), 1.0);
+        double radiationRatio = Math.min(radiation / Math.max(Rso, 0.01), 1.0);
 
         double Rnl = (STEFAN_BOLTZMANN / 24) * Math.pow(TK, 4) *
                 (0.34 - 0.14 * Math.sqrt(ea)) *
@@ -108,9 +115,5 @@ public class HourlyEToCalculator {
 
     private static double calculateHourlySoilHeatFlux(double Rn, boolean isDaytime) {
         return isDaytime ? 0.1 * Rn : 0.5 * Rn;
-    }
-
-    public static double convertPressureFromAltitude(double altitude) {
-        return 101.3 * Math.pow((293 - 0.0065 * altitude) / 293, 5.26);
     }
 }

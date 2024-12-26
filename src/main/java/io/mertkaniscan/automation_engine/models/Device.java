@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mertkaniscan.automation_engine.utils.FetchInterval;
+import io.mertkaniscan.automation_engine.utils.NonReentrantLock;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +24,9 @@ import java.util.concurrent.locks.ReentrantLock;
 @Entity
 @Table(name = "devices", uniqueConstraints = @UniqueConstraint(columnNames = "device_ip"))
 public class Device {
+
+    @Transient
+    private final NonReentrantLock lock = new NonReentrantLock();
 
     public enum DeviceStatus {
         WAITING,
@@ -72,9 +76,6 @@ public class Device {
 
     @Column(nullable = false)
     private Timestamp updatedAt;
-
-    @Transient
-    private final Lock lock = new ReentrantLock();
 
     public Device() {
         // No-argument constructor for JPA
@@ -166,7 +167,7 @@ public class Device {
         }
     }
 
-    public void lock() {
+    public void lock() throws InterruptedException {
         lock.lock();
     }
 
