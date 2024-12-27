@@ -44,7 +44,7 @@ public class Day {
     @Column
     private Double dailyDepletion;
 
-    @OneToMany(mappedBy = "day", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "day", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JsonManagedReference("day-hours")
     private List<Hour> hours = new ArrayList<>();
 

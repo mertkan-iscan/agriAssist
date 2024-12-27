@@ -85,10 +85,14 @@ public class DailyTaskService {
 
     private void createNewDayRecord(Field field, Plant plant, Timestamp currentDate) {
         try {
-            Day day = setStaticDayVariables(field, plant, currentDate);
+
+            WeatherResponse weatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
+            SolarResponse solarResponse = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
+
+            Day day = setStaticDayVariables(weatherResponse, solarResponse, field, plant, currentDate);
             day = dayRepository.save(day);
 
-            createHoursForDay(day);
+            createHoursForDay(weatherResponse, solarResponse, field, day);
             dayRepository.save(day);
 
             log.info("Successfully created new Day record for plantID={} on date={}.", plant.getPlantID(), currentDate);
@@ -98,10 +102,8 @@ public class DailyTaskService {
         }
     }
 
-    private Day setStaticDayVariables(Field field, Plant plant, Timestamp currentDate) {
+    private Day setStaticDayVariables(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, Plant plant, Timestamp currentDate) {
         try {
-            WeatherResponse weatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
-            SolarResponse solarResponse = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
 
             long sunriseEpoch = weatherResponse.getCurrent().getSunrise();
             long sunsetEpoch = weatherResponse.getCurrent().getSunset();
@@ -111,6 +113,8 @@ public class DailyTaskService {
 
             // Create new Day entity
             Day day = new Day();
+
+            day.setDailyDepletion(field.getCurrentDeValue());
 
             day.setDate(currentDate);
             day.setPlant(plant);
@@ -133,7 +137,7 @@ public class DailyTaskService {
     }
 
 
-    private void createHoursForDay(Day day) {
+    private void createHoursForDay(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, Day day) {
 
         for (int hourIndex = 0; hourIndex < 24; hourIndex++) {
 
@@ -145,7 +149,7 @@ public class DailyTaskService {
 
             if (!exists) {
                 // Create and add hour
-                Hour hourRecord = setStaticHourVariables(hourIndex, day);
+                Hour hourRecord = setStaticHourVariables(weatherResponse, solarResponse, field, hourIndex, day);
 
                 day.getHours().add(hourRecord);
 
@@ -154,25 +158,28 @@ public class DailyTaskService {
         }
     }
 
-    private Hour setStaticHourVariables(int hourIndex, Day day) {
+    private Hour setStaticHourVariables(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex, Day day) {
         try {
 
             Double forecastRH = day.getWeatherResponse().getHourly().get(hourIndex).getHumidity().doubleValue();
             Double forecastTemp = day.getWeatherResponse().getHourly().get(hourIndex).getTemp();
+            Double windSpeed = day.getWeatherResponse().getHourly().get(hourIndex).getWindSpeed();
 
             Hour hourRecord = new Hour();
             hourRecord.setHourIndex(hourIndex);
             hourRecord.setDay(day);
             hourRecord.setForecastTemperature(forecastTemp);
             hourRecord.setForecastHumidity(forecastRH);
+            hourRecord.setForecastWindSpeed(windSpeed);
 
-            //hourRecord.setDeValue();
-            //hourRecord.setKeValue();
-            //hourRecord.setGuessedEtoHourly();
-//
-            //hourRecord.setSensorTemperature();
-            //hourRecord.setSensorHumidity();
 
+            double eto = calculatorService.calculateForecastEToHourly(
+                    day.getWeatherResponse(),
+                    day.getSolarResponse(),
+                    field,
+                    hourIndex);
+
+            hourRecord.setGuessedEtoHourly(eto);
 
             return hourRecord;
 

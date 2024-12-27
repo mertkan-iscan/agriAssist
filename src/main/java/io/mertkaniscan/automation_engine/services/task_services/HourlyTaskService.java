@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -52,23 +51,23 @@ public class HourlyTaskService {
             LocalDateTime now = LocalDateTime.now();
             int hourIndex = now.getHour();
 
-            Optional<Day> todayOpt = Optional.ofNullable(
-                    dayRepository.findByPlant_PlantIDAndDate(
-                            field.getPlantInField().getPlantID(),
-                            Timestamp.valueOf(LocalDate.now().atStartOfDay())
-                    )
+            Day today = dayRepository.findByPlant_PlantIDAndDateWithHours(
+                    field.getPlantInField().getPlantID(),
+                    Timestamp.valueOf(LocalDate.now().atStartOfDay())
             );
 
-            if (todayOpt.isEmpty()) {
+            if (today == null) {
                 log.warn("No Day record found for field '{}'. Skipping.", field.getFieldName());
                 return;
             }
 
-            Day today = todayOpt.get();
             today.getHours().stream()
                     .filter(hour -> hour.getHourIndex() == hourIndex)
                     .findFirst()
-                    .ifPresent(hour -> updateHourRecord(hour, field, hourIndex));
+                    .ifPresent(hour -> {
+                        updateHourRecord(hour, field, hourIndex);
+                        //updateDepletionValue(hour, field);
+                    });
 
         } catch (Exception e) {
             log.error("Error updating hourly records for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
@@ -83,10 +82,20 @@ public class HourlyTaskService {
                     field.getLongitude()
             );
 
-            //pull sensor datas from db if empty try to pull directly from device
-            // Get mean sensor values for the last day
-            double meanTemperature = sensorDataService.getMeanSensorDataByFieldIDAndType(field.getFieldID(), "temperature", 1);
-            double meanHumidity = sensorDataService.getMeanSensorDataByFieldIDAndType(field.getFieldID(), "humidity", 1);
+            // Timestamp for the current hour
+            Timestamp currentHourTimestamp = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
+
+            // Get mean sensor values using the new method
+            Double meanTemperature = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_hum", currentHourTimestamp);
+            Double meanHumidity = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_temp", currentHourTimestamp);
+
+            if (meanTemperature == null || meanHumidity == null) {
+                log.warn("Sensor data missing for field '{}', skipping hour update.", field.getFieldName());
+                return;
+            }
+
+            log.info("mean temperature: {}", meanTemperature);
+            log.info("mean humidity: {}", meanHumidity);
 
             // get previous solar data
             SolarResponse solarResponse = hour.getDay().getSolarResponse();
@@ -96,7 +105,15 @@ public class HourlyTaskService {
             }
 
             // Calculate the ETo for the current hour
-            double eto = calculatorService.calculateEToHourly(
+            double sensorEToHourly = calculatorService.calculateSensorEToHourly(
+                    meanTemperature,
+                    meanHumidity,
+                    weatherResponse,
+                    solarResponse,
+                    field,
+                    hourIndex);
+
+            double currentEToHourly = calculatorService.calculateCurrentEToHourly(
                     weatherResponse,
                     solarResponse,
                     field,
@@ -111,8 +128,8 @@ public class HourlyTaskService {
             hour.setSensorTemperature(meanTemperature);
             hour.setSensorHumidity(meanHumidity);
 
-            hour.setForecastEToHourly(eto);
-            hour.setSensorEToHourly(eto);
+            hour.setForecastEToHourly(currentEToHourly);
+            hour.setSensorEToHourly(sensorEToHourly);
 
             dayRepository.save(hour.getDay());
 
@@ -120,6 +137,25 @@ public class HourlyTaskService {
 
         } catch (Exception e) {
             log.error("Failed to update Hour record for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
+        }
+    }
+
+    private void updateDepletionValue(Hour hour, Field field) {
+        try {
+            Timestamp currentHourTimestamp = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
+            double fieldCapacity = field.getFieldCapacity();
+            double currentSoilMoisture = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "soil_moisture", currentHourTimestamp);
+            double depletionValue = fieldCapacity - currentSoilMoisture;
+
+            hour.setDeValue(depletionValue);
+            hour.setLastUpdated(LocalDateTime.now());
+
+            dayRepository.save(hour.getDay());
+
+            log.info("Updated depletion value for hour={} in field '{}'. Depletion Value: {}", hour.getHourIndex(), field.getFieldName(), depletionValue);
+
+        } catch (Exception e) {
+            log.error("Failed to update Depletion value for hour={} in field '{}'. Error: {}", hour.getHourIndex(), field.getFieldName(), e.getMessage(), e);
         }
     }
 }

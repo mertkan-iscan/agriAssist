@@ -72,7 +72,7 @@ public class CalculatorService {
         return eto;
     }
 
-    public double calculateEToHourly(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
+    public double calculateForecastEToHourly(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
 
 
         double temp = weatherResponse.getHourly().get(hourIndex).getTemp();
@@ -83,6 +83,86 @@ public class CalculatorService {
         int cloudCoverage = weatherResponse.getHourly().get(hourIndex).getClouds();
         double clearSkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getClearSky().getGhi();
         double cloudySkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getCloudySky().getGhi();
+        double ghi = calculateGHI(clearSkyGHI, cloudySkyGHI, cloudCoverage);
+
+        double windSpeed = getHourlyWindSpeed(field, weatherResponse, hourIndex);
+
+        double elevation = field.getElevation();
+
+        // Calculate day of the year and the current hour
+        int dayOfYear = LocalDateTime.now().getDayOfYear();
+        int hour = LocalDateTime.now().getHour();
+
+        // Determine if it's daytime based on solar radiation
+        boolean isDaytime = ghi > 0;
+
+        // Use the HourlyEToCalculator to calculate ETo
+        double eto = HourlyEToCalculator.calculateEToHourly(
+                temp, humidity, ghi, windSpeed, latitude, elevation, pressureHpa, dayOfYear, hour, isDaytime);
+
+        // Ensure value is non-negative
+        if (eto < 0) {
+            log.warn("Calculated ETo (Hourly) is negative! Setting to 0. Value: {}", eto);
+            eto = 0.0;
+        }
+
+        return eto;
+    }
+
+    public double calculateCurrentEToHourly(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
+
+
+        double temp = weatherResponse.getCurrent().getTemp();
+        double humidity = weatherResponse.getCurrent().getHumidity();
+
+        double latitude = field.getLatitude();
+        double pressureHpa = weatherResponse.getCurrent().getPressure();
+
+        int cloudCoverage = weatherResponse.getCurrent().getClouds();
+
+        double clearSkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getClearSky().getGhi();
+        double cloudySkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getCloudySky().getGhi();
+
+        double ghi = calculateGHI(clearSkyGHI, cloudySkyGHI, cloudCoverage);
+
+        double windSpeed = getHourlyWindSpeed(field, weatherResponse, hourIndex);
+
+        double elevation = field.getElevation();
+
+        // Calculate day of the year and the current hour
+        int dayOfYear = LocalDateTime.now().getDayOfYear();
+        int hour = LocalDateTime.now().getHour();
+
+        // Determine if it's daytime based on solar radiation
+        boolean isDaytime = ghi > 0;
+
+        // Use the HourlyEToCalculator to calculate ETo
+        double eto = HourlyEToCalculator.calculateEToHourly(
+                temp, humidity, ghi, windSpeed, latitude, elevation, pressureHpa, dayOfYear, hour, isDaytime);
+
+        // Ensure value is non-negative
+        if (eto < 0) {
+            log.warn("Calculated ETo (Hourly) is negative! Setting to 0. Value: {}", eto);
+            eto = 0.0;
+        }
+
+        return eto;
+    }
+
+    public double calculateSensorEToHourly(Double sensorHumidity, Double sensorTemp, WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
+
+
+        double temp = sensorTemp;
+        double humidity = sensorHumidity;
+
+        double latitude = field.getLatitude();
+        double pressureHpa = weatherResponse.getCurrent().getPressure();
+
+        int cloudCoverage = weatherResponse.getCurrent().getClouds();
+
+        double clearSkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getClearSky().getGhi();
+        double cloudySkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getCloudySky().getGhi();
+
         double ghi = calculateGHI(clearSkyGHI, cloudySkyGHI, cloudCoverage);
 
         double windSpeed = getHourlyWindSpeed(field, weatherResponse, hourIndex);

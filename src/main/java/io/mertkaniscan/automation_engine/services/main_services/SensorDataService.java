@@ -4,6 +4,7 @@ import io.mertkaniscan.automation_engine.models.SensorData;
 import io.mertkaniscan.automation_engine.repositories.SensorDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -50,6 +51,23 @@ public class SensorDataService {
         return sensorDataRepository.findByFieldIdAndTypeAndTimestampAfter(fieldID, dataType, since);
     }
 
+    @Transactional
+    public Double getMeanSensorDataByFieldIdTypeAndTimestamp(int fieldID, String dataType, Timestamp since) {
+        // Fetch data from the given timestamp
+        List<SensorData> sensorDataList = findByFieldIdAndTypeAndTimestampAfter(fieldID, dataType, since);
+
+        if (sensorDataList == null || sensorDataList.isEmpty()) {
+            return null;
+        }
+
+        return sensorDataList.stream()
+                .mapToDouble(sensorData -> sensorData.getDataValues()
+                        .getOrDefault(dataType, 0.0))
+                .average()
+                .orElse(0.0);
+    }
+
+    @Transactional
     public double getMeanSensorDataByFieldIDAndType(int fieldID, String dataType, int days) {
         // Fetch data within the given timeframe
         List<SensorData> sensorDataList = getSensorDataByFieldIDAndTypeWithinLastDaysFromDb(fieldID, dataType, days);

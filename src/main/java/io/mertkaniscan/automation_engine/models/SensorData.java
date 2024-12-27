@@ -19,7 +19,7 @@ public class SensorData {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int sensorDataID;
 
-    @ElementCollection
+    @ElementCollection()
     @CollectionTable(name = "sensor_data_values", joinColumns = @JoinColumn(name = "sensor_data_id"))
     @MapKeyColumn(name = "data_type")
     @Column(name = "data_value")

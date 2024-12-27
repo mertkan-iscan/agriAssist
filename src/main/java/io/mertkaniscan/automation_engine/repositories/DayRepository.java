@@ -12,4 +12,7 @@ import java.sql.Timestamp;
 public interface DayRepository extends JpaRepository<Day, Integer>{
     @Query("SELECT d FROM Day d WHERE d.plant.plantID = :plantID AND DATE(d.date) = DATE(:date)")
     Day findByPlant_PlantIDAndDate(@Param("plantID") int plantID, @Param("date") Timestamp date);
+
+    @Query("SELECT d FROM Day d LEFT JOIN FETCH d.hours WHERE d.plant.plantID = :plantID AND d.date = :date")
+    Day findByPlant_PlantIDAndDateWithHours(@Param("plantID") int plantID, @Param("date") Timestamp date);
 }
