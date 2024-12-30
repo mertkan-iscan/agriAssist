@@ -1,7 +1,6 @@
 package io.mertkaniscan.automation_engine.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,9 +17,6 @@ public class Hour {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int hourID;
 
-    @Column
-    private int minuteOfDay;
-
     @Column(nullable = false)
     private int hourIndex;
 
@@ -28,10 +24,13 @@ public class Hour {
     private Double KeValue;
 
     @Column
-    private Double TEWValue;
-
+    private Double TAWValueHourly;
     @Column
-    private Double REWValue;
+    private Double RAWValueHourly;
+    @Column
+    private Double TEWValueHourly;
+    @Column
+    private Double REWValueHourly;
 
     //@Column
     //private Double guessedWaterVolume;
@@ -55,16 +54,16 @@ public class Hour {
     private Double forecastWindSpeed;
 
     @Column
-    private Double sensorWindSpeed;
-
-    @Column
     private Double sensorHumidity;
 
     @Column
     private Double forecastHumidity;
 
     @Column
-    private Double precipitation;
+    private Double forecastPrecipitation;
+
+    @Column
+    private Double happenedPrecipitation;
 
     @Column
     private Double solarRadiation;
@@ -73,10 +72,18 @@ public class Hour {
     private Double DeValue;
 
     @Column
+    private Double KrValue;
+
+    @Column
     private LocalDateTime lastUpdated;
 
     @Column
     private Double hourlyDepletion;
+
+    @Column
+    private Double calculatedKcbAdjusted;
+
+
 
     @ManyToOne
     @JoinColumn(name = "dayid", nullable = false)
@@ -90,18 +97,10 @@ public class Hour {
         this.day = day;
     }
 
-    public int getMinute() {
-        return this.minuteOfDay % 60;
-    }
-
     public Double getWindSpeed(Field.FieldType fieldType) {
 
         if (fieldType == Field.FieldType.GREENHOUSE) {
             return 0.0;
-        }
-
-        if (this.sensorWindSpeed != null) {
-            return this.sensorWindSpeed;
         }
 
         return this.forecastWindSpeed;

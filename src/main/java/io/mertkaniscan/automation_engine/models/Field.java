@@ -19,7 +19,6 @@ public class Field {
     public enum FieldType {
         OUTDOOR,
         GREENHOUSE,
-        SOILFIELD
     }
 
     public enum SoilType {
@@ -29,7 +28,7 @@ public class Field {
         LOAM
     }
 
-    public enum IrrigationStatus {
+    public enum FieldIrrigationStatus {
         NOT_IRRIGATING,
         IRRIGATING
     }
@@ -68,6 +67,9 @@ public class Field {
 
     @Column(nullable = false)
     private Double infiltrationRate;//(mm/hour)
+
+    @Column(nullable = false)
+    private Double evaporationCoeff;
 
     @Column(nullable = false)
     private Double totalArea; //m2
@@ -111,7 +113,7 @@ public class Field {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private IrrigationStatus irrigationStatus = IrrigationStatus.NOT_IRRIGATING;
+    private FieldIrrigationStatus fieldIrrigationStatus = FieldIrrigationStatus.NOT_IRRIGATING;
 
     @OneToMany(mappedBy = "field", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("field-irrigationRequest")

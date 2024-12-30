@@ -24,31 +24,4 @@ public class KeCalculationService {
     @Autowired
     private CalculatorService calculatorService;
 
-    @Transactional
-    public void calculateAndUpdateKeValues(int fieldID) {
-
-        Field field = fieldService.getFieldById(fieldID);
-        Plant plant = field.getPlantInField();
-
-        List<Hour> hoursList = hoursRepository.findAll();
-
-        //for (Hour hour : hoursList) {
-
-            // Gather required parameters for the Ke calculation
-            //double fw = calculatorService.calculateFw(fieldID);
-            //double KcMax = Calculators.calculateKcMax(plant.getCurrentKcValue(), hour.getSensorHumidity(), hour.getSensorWindSpeed());
-//
-            //// Calculate Ke using Calculators utility
-            //double Ke = calculatorService.calculateKe(Kr, fw, KcMax, hour.getDeValue(), hour.getTEWValue(), hour.getREWValue());
-
-            //field.setCurrentKeValue(Ke);
-            //field.setCurrentTEWValue();
-            //field.setCurrentREWValue();
-//
-            //hour.setKeValue(Ke);
-            //hour.setLastUpdated(LocalDateTime.now());
-        //}
-
-        hoursRepository.saveAll(hoursList);
-    }
 }

@@ -6,7 +6,9 @@ import io.mertkaniscan.automation_engine.models.SensorData;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.services.main_services.SensorDataService;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataSocketService;
+import io.mertkaniscan.automation_engine.services.notification_services.EmailNotificationService;
 import io.mertkaniscan.automation_engine.utils.FetchInterval;
+import org.hibernate.validator.constraints.Email;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.apache.logging.log4j.Logger;
@@ -27,12 +29,14 @@ public class ScheduledSensorDataFetcher {
     private final DeviceService deviceService;
     private final SensorDataSocketService sensorDataSocketService;
     private final SensorDataService sensorDataService;
+    private final EmailNotificationService emailNotificationService;
 
     @Autowired
-    public ScheduledSensorDataFetcher(DeviceService deviceService, SensorDataSocketService sensorDataSocketService, SensorDataService sensorDataService){
+    public ScheduledSensorDataFetcher(DeviceService deviceService, SensorDataSocketService sensorDataSocketService, SensorDataService sensorDataService, EmailNotificationService emailNotificationService){
         this.deviceService = deviceService;
         this.sensorDataSocketService = sensorDataSocketService;
         this.sensorDataService = sensorDataService;
+        this.emailNotificationService = emailNotificationService;
     }
 
     public void initializeDeviceTasks() {
@@ -68,41 +72,66 @@ public class ScheduledSensorDataFetcher {
             return;
         }
 
-        try {
-            logger.info("Starting data fetch for device. ID: {}, IP: {}, Model: {}, Type: {}",
-                    device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel(), device.getDeviceType());
+        final int MAX_RETRIES = 3; // Define the maximum number of retries
+        final long RETRY_DELAY_MS = 2000; // Define the delay between retries in milliseconds
+        int attempt = 0;
+        boolean success = false;
 
-            List<SensorData> sensorDataList = sensorDataSocketService.fetchSensorData(device.getDeviceID());
-            logger.debug("Fetched {} records for device ID: {}", sensorDataList.size(), device.getDeviceID());
+        while (attempt < MAX_RETRIES && !success) {
+            attempt++;
+            try {
+                logger.info("Attempt {} to fetch data for device. ID: {}, IP: {}, Model: {}, Type: {}",
+                        attempt, device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel(), device.getDeviceType());
 
-            for (SensorData sensorData : sensorDataList) {
-                logger.debug("Saving sensor data for device ID: {}, Data: {}", device.getDeviceID(), sensorData);
-                sensorDataService.saveSensorData(sensorData);
-            }
+                List<SensorData> sensorDataList = sensorDataSocketService.fetchSensorData(device.getDeviceID());
+                logger.debug("Fetched {} records for device ID: {}", sensorDataList.size(), device.getDeviceID());
 
-            if (!sensorDataList.isEmpty()) {
-                logger.info("Successfully fetched and saved {} sensor data records for device ID: {}.", sensorDataList.size(), device.getDeviceID());
-
-                if (!Device.DeviceStatus.ACTIVE.equals(device.getDeviceStatus())) {
-                    logger.info("Updating device status to ACTIVE. Device ID: {}, Previous Status: {}", device.getDeviceID(), device.getDeviceStatus());
-                    device.setDeviceStatus(Device.DeviceStatus.ACTIVE);
-                    deviceService.updateDevice(device.getDeviceID(), device);
+                for (SensorData sensorData : sensorDataList) {
+                    logger.debug("Saving sensor data for device ID: {}, Data: {}", device.getDeviceID(), sensorData);
+                    sensorDataService.saveSensorData(sensorData);
                 }
-            } else {
-                logger.warn("No valid sensor data received for device ID: {}, IP: {}, Model: {}.", device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel());
-            }
 
-        } catch (Exception e) {
-            logger.error("Error fetching sensor data for device ID: {}, IP: {}, Model: {}. Error: {}",
-                    device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel(), e.getMessage(), e);
+                if (!sensorDataList.isEmpty()) {
+                    logger.info("Successfully fetched and saved {} sensor data records for device ID: {}.", sensorDataList.size(), device.getDeviceID());
 
-            if (!Device.DeviceStatus.INACTIVE.equals(device.getDeviceStatus())) {
-                logger.warn("Marking device as INACTIVE due to error. Device ID: {}, Previous Status: {}", device.getDeviceID(), device.getDeviceStatus());
-                device.setDeviceStatus(Device.DeviceStatus.INACTIVE);
-                deviceService.updateDevice(device.getDeviceID(), device);
+                    if (!Device.DeviceStatus.ACTIVE.equals(device.getDeviceStatus())) {
+                        logger.info("Updating device status to ACTIVE. Device ID: {}, Previous Status: {}", device.getDeviceID(), device.getDeviceStatus());
+                        device.setDeviceStatus(Device.DeviceStatus.ACTIVE);
+                        deviceService.updateDevice(device.getDeviceID(), device);
+                    }
+                    success = true; // Mark the fetch as successful to exit the loop
+                } else {
+                    logger.warn("No valid sensor data received for device ID: {}, IP: {}, Model: {}.", device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel());
+                    success = true; // Avoid retries for empty data
+                }
+
+            } catch (Exception e) {
+                logger.error("Attempt {} failed. Error fetching sensor data for device ID: {}, IP: {}, Model: {}. Error: {}",
+                        attempt, device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel(), e.getMessage(), e);
+
+                emailNotificationService.sendEmail("Sensor Data Fetch Error", String.format("Failed to fetch data for device ID: %d, IP: %s, Model: %s.\nError: %s",
+                        device.getDeviceID(), device.getDeviceIp(), device.getDeviceModel(), e.getMessage()));
+
+                if (attempt == MAX_RETRIES) {
+                    logger.error("Exceeded maximum retries ({}) for device ID: {}. Marking device as INACTIVE.", MAX_RETRIES, device.getDeviceID());
+                    if (!Device.DeviceStatus.INACTIVE.equals(device.getDeviceStatus())) {
+                        device.setDeviceStatus(Device.DeviceStatus.INACTIVE);
+                        deviceService.updateDevice(device.getDeviceID(), device);
+                    }
+                } else {
+                    logger.info("Retrying fetch for device ID: {} (Attempt {}/{}). Waiting {} ms before retry.", device.getDeviceID(), attempt + 1, MAX_RETRIES, RETRY_DELAY_MS);
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS); // Introduce a delay before retrying
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt(); // Restore interrupt status
+                        logger.error("Retry interrupted for device ID: {}. Exiting retries.", device.getDeviceID());
+                        break;
+                    }
+                }
             }
         }
     }
+
 
 
     public void cancelExistingTask(int deviceID) {

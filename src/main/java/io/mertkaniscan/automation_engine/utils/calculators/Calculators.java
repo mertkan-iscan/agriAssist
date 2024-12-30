@@ -17,8 +17,8 @@ public class Calculators {
         return saturationVaporPressure - actualVaporPressure;
     }
 
-    public static double calculateKe(double Kr, double fw, double KcMax) {
-        return Math.min(Kr * KcMax, fw * KcMax);
+    public static double calculateKe(double Kr, double fw, double KcMax, double Kcb) {
+        return Kr * (KcMax - Kcb) * fw;
     }
 
     public static double calculateKr(double evaporationDeficit, double TEW, double REW) {
@@ -43,7 +43,7 @@ public class Calculators {
         return Math.min(De, TEW);
     }
 
-    public static double calculateEact(double Ke, double ETo) {
+    public static double calculateETc(double Ke, double ETo) {
         if (Ke < 0 || ETo < 0) {
             throw new IllegalArgumentException("Ke and ETo must be non-negative values.");
         }
@@ -51,12 +51,15 @@ public class Calculators {
     }
 
     public static double calculateKcMax(double Kcb, double humidity, double windSpeed) {
-
         double KcMaxBase = Kcb + 0.05;
 
         if (humidity < 40 || windSpeed > 5) {
-            return KcMaxBase + (0.04 * (windSpeed - 2)) - (0.004 * (humidity - 45));
+
+            double windEffect = 0.04 * (windSpeed - 2);
+            double humidityEffect = -0.004 * (humidity - 45);
+            return KcMaxBase + windEffect + humidityEffect;
         }
+
         return KcMaxBase;
     }
 
@@ -64,8 +67,12 @@ public class Calculators {
         return (FieldCapacity - WiltingPoint) * Ze;
     }
 
-    public static double calculateREW(double TEW, double Kr) {
-        return TEW * Kr;
+    public static double calculateSensorTEW(double soilWaterPercentage, double wiltingPoint, double maxEvaporationDepth) {
+        return Math.max(0, (soilWaterPercentage - wiltingPoint) * maxEvaporationDepth);
+    }
+
+    public static double calculateREW(double TEW, double p) {
+        return TEW * p;
     }
 
     public static double calculateTAW(double SoilMoisture, double WiltingPoint, double RZD) {

@@ -4,6 +4,7 @@ import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.IrrigationRequest;
 import io.mertkaniscan.automation_engine.models.Plant;
+import io.mertkaniscan.automation_engine.services.device_services.DeviceJoinService;
 import io.mertkaniscan.automation_engine.services.irrigation_services.IrrigationService;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
@@ -22,12 +23,22 @@ public class FieldViewController {
     private final FieldService fieldService;
     private final DeviceService deviceService;
     private final IrrigationService irrigationService;
+    private final DeviceJoinService deviceJoinService;
 
-    public FieldViewController(FieldService fieldService, DeviceService deviceService, IrrigationService irrigationService) {
+    public FieldViewController(FieldService fieldService, DeviceService deviceService, IrrigationService irrigationService, DeviceJoinService deviceJoinService) {
         this.fieldService = fieldService;
         this.deviceService = deviceService;
         this.irrigationService = irrigationService;
+        this.deviceJoinService = deviceJoinService;
     }
+
+//    @GetMapping("/join-requests")
+//    public String joinRequests(Model model) {
+//        // Assume `deviceJoinService` is an available service for fetching join requests
+//        List<Device> joinRequests = deviceJoinService.getPendingJoinRequests(); // Add this method to `DeviceJoinService` if needed
+//        model.addAttribute("joinRequests", joinRequests);
+//        return "join_requests";
+//    }
 
     @GetMapping
     public String listFields(Model model) {

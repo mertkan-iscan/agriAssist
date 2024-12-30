@@ -42,6 +42,15 @@ public class Day {
     private Double guessedEtoDaily;
 
     @Column
+    private Double TAWValueDaily;
+    @Column
+    private Double RAWValueDaily;
+    @Column
+    private Double TEWValueDaily;
+    @Column
+    private Double REWValueDaily;
+
+    @Column
     private Double dailyDepletion;
 
     @OneToMany(mappedBy = "day", cascade = CascadeType.ALL, fetch = FetchType.EAGER)

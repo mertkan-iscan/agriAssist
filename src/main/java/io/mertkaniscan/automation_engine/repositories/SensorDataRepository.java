@@ -14,9 +14,23 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Integer>
 
     // Query to find SensorData by field ID and data type in the map
     @Query("SELECT sd FROM SensorData sd JOIN sd.dataValues dv WHERE sd.field.fieldID = :fieldID AND KEY(dv) = :dataType")
-    List<SensorData> findByFieldIDAndDataType(@Param("fieldID") int fieldID, @Param("dataType") String dataType);
+    List<SensorData> findByFieldIDAndDataType(
+            @Param("fieldID") int fieldID,
+            @Param("dataType") String dataType
+    );
 
     // Query to find SensorData by field ID, data type, and timestamp in the map
     @Query("SELECT sd FROM SensorData sd JOIN sd.dataValues dv WHERE sd.field.fieldID = :fieldID AND KEY(dv) = :dataType AND sd.timestamp > :since ORDER BY sd.timestamp ASC")
-    List<SensorData> findByFieldIdAndTypeAndTimestampAfter(@Param("fieldID") int fieldID, @Param("dataType") String dataType, @Param("since") Timestamp since);
+    List<SensorData> findByFieldIdAndTypeAndTimestampAfter(
+            @Param("fieldID") int fieldID,
+            @Param("dataType") String dataType,
+            @Param("since") Timestamp since
+    );
+
+    @Query("SELECT sd FROM SensorData sd WHERE sd.timestamp BETWEEN :startTime AND :endTime AND KEY(sd.dataValues) = :dataType")
+    List<SensorData> findSensorDataBetweenTimestamps(
+            @Param("startTime") Timestamp startTime,
+            @Param("endTime") Timestamp endTime,
+            @Param("dataType") String dataType
+    );
 }

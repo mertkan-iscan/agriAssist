@@ -16,21 +16,6 @@ import java.util.List;
 @Table(name = "plants")
 public class Plant {
 
-    public enum PlantType {
-        TOMATO,
-        LETTUCE,
-        CUCUMBER
-    }
-
-    public enum PlantStage {
-        EARLY_GROWTH,
-        VEGETATIVE,
-        FLOWERING,
-        POLLINATION,
-        FRUIT_FORMATION,
-        FRUIT_RIPENING
-    }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int plantID;
@@ -38,16 +23,17 @@ public class Plant {
     @Column(nullable = false)
     private int fieldID;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PlantType plantType;
+    private String plantType;
 
     @Column(nullable = false)
     private Timestamp plantSowDate;
 
-    @Enumerated(EnumType.STRING)
     @Column
-    private PlantStage plantStage;
+    private String plantStage;
+
+    @Column
+    private Integer dayAfterSowDate;
 
     @Column(nullable = false)
     private Double currentRootZoneDepth;
@@ -65,7 +51,7 @@ public class Plant {
     public Plant() {
     }
 
-    public Plant(int plantID, PlantType plantType, Timestamp plantSowDate, PlantStage plantStage,
+    public Plant(int plantID, String plantType, Timestamp plantSowDate, String plantStage,
                  Double currentRootZoneDepth, Double allowableDepletion, Double currentKcValue, int fieldID) {
 
         this.plantID = plantID;
@@ -92,26 +78,6 @@ public class Plant {
                     return dayDate.equals(today);
                 })
                 .findFirst()
-                .orElse(null);
-    }
-
-    public Hour getCurrentHour() {
-        Day today = getToday();
-        if (today == null || today.getHours() == null || today.getHours().isEmpty()) {
-            return null;
-        }
-
-        // Get current time in minutes since midnight
-        LocalTime now = LocalTime.now();
-        int currentMinuteOfDay = now.getHour() * 60 + now.getMinute();
-
-        // Find the closest hour record
-        return today.getHours().stream()
-                .min((h1, h2) -> {
-                    int diff1 = Math.abs(h1.getMinuteOfDay() - currentMinuteOfDay);
-                    int diff2 = Math.abs(h2.getMinuteOfDay() - currentMinuteOfDay);
-                    return Integer.compare(diff1, diff2);
-                })
                 .orElse(null);
     }
 }

@@ -51,6 +51,25 @@ public class SensorDataService {
         return sensorDataRepository.findByFieldIdAndTypeAndTimestampAfter(fieldID, dataType, since);
     }
 
+    public List<SensorData> getSensorDataBetweenTimestamps(Timestamp startTime, Timestamp endTime, String dataType) {
+        return sensorDataRepository.findSensorDataBetweenTimestamps(startTime, endTime, dataType);
+    }
+
+    public Double getMeanValueBetweenTimestamps(Timestamp startTime, Timestamp endTime, String dataType) {
+
+        List<SensorData> sensorDataList = getSensorDataBetweenTimestamps(startTime, endTime, dataType);
+
+        if (sensorDataList == null || sensorDataList.isEmpty()) {
+            return null;
+        }
+
+        // Calculate the mean value
+        return sensorDataList.stream()
+                .mapToDouble(sensorData -> sensorData.getDataValues().getOrDefault(dataType, 0.0))
+                .average()
+                .orElse(0.0);
+    }
+
     @Transactional
     public Double getMeanSensorDataByFieldIdTypeAndTimestamp(int fieldID, String dataType, Timestamp since) {
         // Fetch data from the given timestamp

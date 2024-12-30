@@ -1,5 +1,6 @@
 package io.mertkaniscan.automation_engine.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -14,6 +15,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import java.util.concurrent.locks.Lock;
@@ -44,6 +46,9 @@ public class Device {
     @Setter
     @Column(nullable = false, unique = true)
     private String deviceIp;
+
+    @Column
+    private Integer devicePort;
 
     @Column(nullable = false)
     private String deviceType;
@@ -76,6 +81,10 @@ public class Device {
 
     @Column(nullable = false)
     private Timestamp updatedAt;
+
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("device-sensorDatas")
+    private List<SensorData> sensorDatas;
 
     public Device() {
         // No-argument constructor for JPA

@@ -57,9 +57,10 @@ public class ActuatorCommandSocketService {
 
     private String communicateWithActuator(Device device, int degree) throws Exception {
         String deviceIp = device.getDeviceIp();
+        Integer devicePort = device.getDevicePort();
 
         Callable<String> sendCommandTask = () -> {
-            try (Socket socket = new Socket(deviceIp, 5000);
+            try (Socket socket = new Socket(deviceIp, devicePort);
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 

@@ -17,5 +17,5 @@ public class FieldConfig {
     private double saturation;          // Maksimum su tutma kapasitesi (0-1 arasında bir oran)
     private double infiltrationRate;    // Su sızma oranı (mm/saat)
     private double maxEvaporationDepth; // Maksimum buharlaşma derinliği (m)
-
+    private double evaporationCoeff;
 }

@@ -29,9 +29,6 @@ public class SensorDataSocketService {
     private static final Logger logger = LogManager.getLogger(SensorDataSocketService.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @Value("${device.command.port}")
-    private int devicePort;
-
     private final DeviceService deviceService;
     private final SensorConfigService sensorConfigService;
     private final DeviceCommandConfigLoader deviceCommandConfigLoader;
@@ -69,6 +66,7 @@ public class SensorDataSocketService {
         String deviceIp = device.getDeviceIp();
         List<T> allSensorData = new ArrayList<>();
         String sensorType = device.getDeviceModel();
+        Integer devicePort = device.getDevicePort();
 
         List<String> availableCommands = sensorConfigService.getAvailableCommandsForSensorType(sensorType);
 

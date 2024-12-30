@@ -22,13 +22,13 @@ public class PlantService {
 
         // Retrieve the plant configuration based on the plant type
         PlantConfigNew plantConfig = configLoader.getNewPlantConfigs().stream()
-                .filter(config -> config.getPlantType().equalsIgnoreCase(plant.getPlantType().toString()))
+                .filter(config -> config.getPlantType().equalsIgnoreCase(plant.getPlantType()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Plant type not found in configuration: " + plant.getPlantType()));
 
         // Retrieve the current stage configuration
         PlantConfigNew.StageConfig stageConfig = plantConfig.getStages().stream()
-                .filter(stage -> stage.getStageName().equalsIgnoreCase(plant.getPlantStage().toString()))
+                .filter(stage -> stage.getStageName().equalsIgnoreCase(plant.getPlantStage()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Plant stage not found in configuration: " + plant.getPlantStage()));
 

@@ -31,9 +31,7 @@
         <div class="mb-3">
             <label for="fieldSoilType" class="form-label">Soil Type:</label>
             <select class="form-select" id="fieldSoilType" name="fieldSoilType" required>
-                <option value="" disabled selected>Select soil type</option>
-                <option value="SANDYLOAM">Sandy Loam</option>
-                <option value="SILTLOAM">Silt Loam</option>
+                <option value="" disabled selected>Loading soil types...</option>
             </select>
         </div>
 
@@ -224,6 +222,31 @@
 
         // Update the form data with converted area
         fieldAreaInput.value = areaInSquareMeters;
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const soilTypeSelect = document.getElementById("fieldSoilType");
+
+        fetch('/api/soil-types')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to fetch soil types");
+                }
+                return response.json();
+            })
+            .then(soilTypes => {
+                soilTypeSelect.innerHTML = '<option value="" disabled selected>Select soil type</option>';
+                soilTypes.forEach(type => {
+                    const option = document.createElement("option");
+                    option.value = type;
+                    option.textContent = type;
+                    soilTypeSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error("Error fetching soil types:", error);
+                soilTypeSelect.innerHTML = '<option value="" disabled>Error loading soil types</option>';
+            });
     });
 
 </script>

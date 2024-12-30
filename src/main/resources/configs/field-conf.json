@@ -6,7 +6,8 @@
     "bulkDensity": 1.6,
     "saturation": 0.45,
     "infiltrationRate": 12.0,
-    "maxEvaporationDepth": 0.15
+    "maxEvaporationDepth": 0.15,
+    "evaporationCoeff": 0.5
   },
   {
     "soilType": "SILTLOAM",
@@ -15,7 +16,8 @@
     "bulkDensity": 1.4,
     "saturation": 0.50,
     "infiltrationRate": 6.0,
-    "maxEvaporationDepth": 0.12
+    "maxEvaporationDepth": 0.12,
+    "evaporationCoeff": 0.6
   },
   {
     "soilType": "CLAY",
@@ -24,7 +26,8 @@
     "bulkDensity": 1.3,
     "saturation": 0.55,
     "infiltrationRate": 2.0,
-    "maxEvaporationDepth": 0.10
+    "maxEvaporationDepth": 0.10,
+    "evaporationCoeff": 0.7
   },
   {
     "soilType": "LOAM",
@@ -33,7 +36,8 @@
     "bulkDensity": 1.5,
     "saturation": 0.48,
     "infiltrationRate": 8.0,
-    "maxEvaporationDepth": 0.13
+    "maxEvaporationDepth": 0.13,
+    "evaporationCoeff": 0.55
   },
   {
     "soilType": "PEAT",
@@ -42,6 +46,7 @@
     "bulkDensity": 0.3,
     "saturation": 0.85,
     "infiltrationRate": 15.0,
-    "maxEvaporationDepth": 0.15
+    "maxEvaporationDepth": 0.15,
+    "evaporationCoeff": 0.8
   }
 ]

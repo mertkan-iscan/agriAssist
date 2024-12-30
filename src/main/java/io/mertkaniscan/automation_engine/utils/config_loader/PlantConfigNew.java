@@ -24,6 +24,8 @@ public class PlantConfigNew {
         private Double rootZoneDepth;
         private Double allowableDepletion;
         private Double kcValue;
+        private int minDays;
+        private int maxDays;
         private DayValues dayValues;
         private NightValues nightValues;
 

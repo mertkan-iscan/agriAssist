@@ -1,7 +1,11 @@
 package io.mertkaniscan.automation_engine.config;
 
-import io.mertkaniscan.automation_engine.components.DailyTaskJob;
-import io.mertkaniscan.automation_engine.components.HourlyTaskJob;
+import io.mertkaniscan.automation_engine.components.tasks.daily.DailyTaskJob;
+import io.mertkaniscan.automation_engine.components.tasks.daily.EndDailyTaskJob;
+import io.mertkaniscan.automation_engine.components.tasks.daily.StartDailyTaskJob;
+import io.mertkaniscan.automation_engine.components.tasks.hourly.EndHourlyTaskJob;
+import io.mertkaniscan.automation_engine.components.tasks.hourly.HourlyTaskJob;
+import io.mertkaniscan.automation_engine.components.tasks.hourly.StartHourlyTaskJob;
 import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,7 +49,7 @@ public class QuartzConfig {
 
     @Bean
     public JobDetail startOfDayTaskJobDetail() {
-        return JobBuilder.newJob(DailyTaskJob.class)
+        return JobBuilder.newJob(StartDailyTaskJob.class)
                 .withIdentity("startOfDayTaskJobDetail")
                 .storeDurably()
                 .build();
@@ -62,7 +66,7 @@ public class QuartzConfig {
 
     @Bean
     public JobDetail endOfDayTaskJobDetail() {
-        return JobBuilder.newJob(DailyTaskJob.class)
+        return JobBuilder.newJob(EndDailyTaskJob.class)
                 .withIdentity("endOfDayTaskJobDetail")
                 .storeDurably()
                 .build();
@@ -79,7 +83,7 @@ public class QuartzConfig {
 
     @Bean
     public JobDetail startOfHourTaskJobDetail() {
-        return JobBuilder.newJob(HourlyTaskJob.class)
+        return JobBuilder.newJob(StartHourlyTaskJob.class)
                 .withIdentity("startOfHourTaskJobDetail")
                 .storeDurably()
                 .build();
@@ -96,7 +100,7 @@ public class QuartzConfig {
 
     @Bean
     public JobDetail endOfHourTaskJobDetail() {
-        return JobBuilder.newJob(HourlyTaskJob.class)
+        return JobBuilder.newJob(EndHourlyTaskJob.class)
                 .withIdentity("endOfHourTaskJobDetail")
                 .storeDurably()
                 .build();

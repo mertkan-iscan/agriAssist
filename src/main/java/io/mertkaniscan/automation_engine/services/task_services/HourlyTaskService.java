@@ -74,6 +74,19 @@ public class HourlyTaskService {
         }
     }
 
+
+    private void setNotUpdatedHourValues(Hour hour, Field field) {
+
+        Double TAW = calculatorService.calculateSensorTAW(field, 10);
+        Double TEW = calculatorService.calculateSensorTEW(field, 10);
+        Double Kr = calculatorService.calculateSensorKr(field);
+
+        hour.setTAWValueHourly(TAW);
+        hour.setTEWValueHourly(TEW);
+        hour.setKrValue(Kr);
+
+    }
+
     private void updateHourRecord(Hour hour, Field field, int hourIndex) {
         try {
             // pull fresh weather data
@@ -86,13 +99,8 @@ public class HourlyTaskService {
             Timestamp currentHourTimestamp = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
 
             // Get mean sensor values using the new method
-            Double meanTemperature = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_hum", currentHourTimestamp);
-            Double meanHumidity = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_temp", currentHourTimestamp);
-
-            if (meanTemperature == null || meanHumidity == null) {
-                log.warn("Sensor data missing for field '{}', skipping hour update.", field.getFieldName());
-                return;
-            }
+            Double meanTemperature = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_temp", currentHourTimestamp);
+            Double meanHumidity = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_hum", currentHourTimestamp);
 
             log.info("mean temperature: {}", meanTemperature);
             log.info("mean humidity: {}", meanHumidity);
@@ -119,6 +127,11 @@ public class HourlyTaskService {
                     field,
                     hourIndex);
 
+            hour.setForecastEToHourly(currentEToHourly);
+            hour.setSensorEToHourly(sensorEToHourly);
+
+
+
             // Update the Hour record
             hour.setForecastTemperature(weatherResponse.getHourly().get(hourIndex).getTemp());
             hour.setForecastHumidity(weatherResponse.getHourly().get(hourIndex).getHumidity().doubleValue());
@@ -128,8 +141,15 @@ public class HourlyTaskService {
             hour.setSensorTemperature(meanTemperature);
             hour.setSensorHumidity(meanHumidity);
 
-            hour.setForecastEToHourly(currentEToHourly);
-            hour.setSensorEToHourly(sensorEToHourly);
+            hour.setSolarRadiation(calculatorService.calculateSolarRadiationHourly(weatherResponse, solarResponse, hourIndex));
+
+            WeatherResponse.Rain rain = weatherResponse.getCurrent().getRain();
+
+            if (rain != null && rain.getOneHour() != null) {
+                hour.setHappenedPrecipitation(rain.getOneHour());
+            } else {
+                hour.setHappenedPrecipitation(0.0);
+            }
 
             dayRepository.save(hour.getDay());
 

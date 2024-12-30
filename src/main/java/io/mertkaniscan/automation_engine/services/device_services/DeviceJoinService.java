@@ -96,7 +96,11 @@ public class DeviceJoinService {
             String deviceType = parsedRequest.get("deviceType").getAsString();
             String deviceModel = parsedRequest.get("deviceModel").getAsString();
 
+            int devicePort = parsedRequest.has("devicePort") ? parsedRequest.get("devicePort").getAsInt() : 5000;
+
             Device device = new Device(deviceID, null, deviceModel, deviceSocket.getInetAddress().getHostAddress(), deviceType);
+            device.setDevicePort(devicePort);
+
             DeviceSocketWrapper deviceWrapper = new DeviceSocketWrapper(deviceSocket, device);
 
             activeDeviceSockets.add(deviceWrapper);
