@@ -38,10 +38,12 @@ public class CalculatorService {
 
     private final FieldService fieldService;
     private final SensorDataService sensorDataService;
+    private final Calculators calculators;
 
-    public CalculatorService(FieldService fieldService, SensorDataService sensorDataService) {
+    public CalculatorService(FieldService fieldService, SensorDataService sensorDataService, Calculators calculators) {
         this.fieldService = fieldService;
         this.sensorDataService = sensorDataService;
+        this.calculators = calculators;
     }
 
     public static double calculateSphericalMoisture(double radius,
@@ -297,7 +299,19 @@ public class CalculatorService {
         return eto;
     }
 
+    public double calculateEtcDualhourly(Field field, Hour hour){
+        double currentKc = field.getPlantInField().getCurrentKcValue();
+        double currentKe = field.getCurrentKeValue();
 
+        double ETo;
+        if(field.getFieldType() == Field.FieldType.GREENHOUSE){
+            ETo = hour.getSensorEToHourly();
+        }else{
+            ETo = hour.getForecastEToHourly();
+        }
+
+        return calculators.calculateETcDual(currentKc, currentKe, ETo);
+    }
 
     public double calculateSensorEToHourly(Double sensorTemp, Double sensorHumidity, WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
 
