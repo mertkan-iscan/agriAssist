@@ -11,29 +11,36 @@ import lombok.Setter;
 public class FieldCurrentValues {
 
     @Id
-    private Integer fieldId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
     @OneToOne
-    @MapsId
-    @JoinColumn(name = "fieldid")
+    @JoinColumn(name = "fieldid", nullable = false)
     private Field field;
 
     private Double keValue;
     private Double tewValue;
     private Double rewValue;
+
     private Double tawValue;
     private Double rawValue;
+
     private Double wetArea;
     private Double deValue;
+
     private Double forecastWindSpeed;
     private Double forecastHumidity;
     private Double forecastTemperature;
+
     private Double sensorWindSpeed;
     private Double sensorHumidity;
     private Double sensorTemperature;
+
     private Double sensorETo;
     private Double forecastETo;
+
     private Double solarRadiation;
+
     private Boolean isRaining = false;
 
     // Default constructor

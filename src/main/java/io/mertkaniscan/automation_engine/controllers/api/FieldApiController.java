@@ -57,12 +57,15 @@ public class FieldApiController {
     @GetMapping("/{id}")
     public ResponseEntity<Field> getFieldById(@PathVariable int id) {
         Field field = fieldService.getFieldById(id);
+
         return field != null ? ResponseEntity.ok(field) : ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/delete/{fieldId}")
     public ResponseEntity<?> deleteField(@PathVariable int fieldId) {
+
         fieldService.deleteFieldById(fieldId);
+
         return ResponseEntity.ok().build();
     }
 
@@ -77,7 +80,6 @@ public class FieldApiController {
         existingField.setFieldName(updatedField.getFieldName());
         existingField.setFieldType(updatedField.getFieldType());
         existingField.setFieldSoilType(updatedField.getFieldSoilType());
-        // add more
 
         fieldService.saveField(existingField);
         return ResponseEntity.ok(existingField);
@@ -85,7 +87,7 @@ public class FieldApiController {
 
     @PostMapping("/{fieldID}/add-plant")
     public ResponseEntity<?> addPlantToField(@PathVariable int fieldID, @RequestBody Plant plant) {
-        // Retrieve the field by ID
+
         Field field = fieldService.getFieldById(fieldID);
 
         if (field == null) {
@@ -93,18 +95,14 @@ public class FieldApiController {
                     .body("Field not found.");
         }
 
-        // Check if a plant is already assigned to this field
         if (field.getPlantInField() != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("A plant is already assigned to this field.");
         }
 
-        // Save the plant
         Plant savedPlant = plantService.savePlant(plant);
 
-        // Update the field with the new plant
-        field.setPlantInField(savedPlant);
-        fieldService.saveField(field);
+        fieldService.updateFieldWithPlant(field.getFieldID(), savedPlant);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(savedPlant);
     }
@@ -125,10 +123,9 @@ public class FieldApiController {
     @GetMapping("/{fieldId}/solar-data-daily")
     public ResponseEntity<SolarResponse> pullDailySolarDataByFieldId(@PathVariable int fieldId) {
         try {
-            // Set the date to the current date in the format YYYY-MM-DD
+
             LocalDate date = LocalDate.now();
 
-            // Fetch the solar data for the current date
             SolarResponse solarResponse = fieldService.getSolarDataByFieldId(fieldId, date);
 
             return ResponseEntity.ok(solarResponse);
@@ -187,9 +184,13 @@ public class FieldApiController {
             @RequestParam int deviceID,
             @RequestParam int degree,
             @RequestParam double flowRate) {
+
         try {
+
             deviceService.addCalibration(deviceID, degree, flowRate);
+
             return ResponseEntity.ok("Calibration data added successfully.");
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add calibration data: " + e.getMessage());
         }

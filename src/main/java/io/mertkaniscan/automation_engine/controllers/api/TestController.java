@@ -1,7 +1,7 @@
 package io.mertkaniscan.automation_engine.controllers.api;
 
 import io.mertkaniscan.automation_engine.services.task_services.DailyTaskService;
-import io.mertkaniscan.automation_engine.services.task_services.UpdateHourlyRecordTaskService;
+import io.mertkaniscan.automation_engine.services.task_services.HourlyTaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +16,7 @@ public class TestController {
     private DailyTaskService dailyTaskService;
 
     @Autowired
-    private UpdateHourlyRecordTaskService updateHourlyRecordTaskService;
+    private HourlyTaskService hourlyTaskService;
 
     @GetMapping("/triggerDailyTask")
     public ResponseEntity<String> triggerDailyTask() {
@@ -26,7 +26,7 @@ public class TestController {
 
     @GetMapping("/triggerHourlyTask")
     public ResponseEntity<String> triggerHourlyTask() {
-        updateHourlyRecordTaskService.updateHourlyRecords();
+        hourlyTaskService.setHourlyRecords();
         return ResponseEntity.ok("Hourly task triggered successfully.");
     }
 }

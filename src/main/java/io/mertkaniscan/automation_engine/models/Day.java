@@ -39,6 +39,11 @@ public class Day {
     private Double vpd;
 
     @Column
+    private Double evaporationWaterLoss;
+    @Column
+    private Double plantWaterLoss;
+
+    @Column
     private Double guessedEtoDaily;
 
     @Column

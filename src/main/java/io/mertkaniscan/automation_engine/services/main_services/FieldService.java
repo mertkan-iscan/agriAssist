@@ -64,9 +64,6 @@ public class FieldService {
         );
 
 
-        FieldCurrentValues newCurrentValues = new FieldCurrentValues();
-        field.setCurrentValues(newCurrentValues);
-
         field.setEvaporationCoeff(fieldConfig.getEvaporationCoeff());
         field.setMaxEvaporationDepth(fieldConfig.getMaxEvaporationDepth());
         field.setFieldCapacity(fieldConfig.getFieldCapacity());
@@ -75,7 +72,53 @@ public class FieldService {
         field.setSaturation(fieldConfig.getSaturation());
         field.setInfiltrationRate(fieldConfig.getInfiltrationRate());
 
+        FieldCurrentValues newCurrentValues = new FieldCurrentValues();
+        newCurrentValues.setField(field);
+        field.setCurrentValues(newCurrentValues);
+
         return fieldRepository.save(field);
+    }
+
+    public Field updateField(int fieldId, Field updatedField) {
+        // Fetch the existing Field from the database
+        Field existingField = getFieldById(fieldId);
+
+        if (existingField == null) {
+            throw new IllegalArgumentException("Field with ID " + fieldId + " not found.");
+        }
+
+        // Update basic attributes
+        existingField.setFieldName(updatedField.getFieldName());
+        existingField.setLatitude(updatedField.getLatitude());
+        existingField.setLongitude(updatedField.getLongitude());
+        existingField.setFieldSoilType(updatedField.getFieldSoilType());
+
+        // Update Field-specific configurations if necessary
+        FieldConfig fieldConfig = configLoader.getFieldConfigs().stream()
+                .filter(config -> config.getSoilType().equalsIgnoreCase(updatedField.getFieldSoilType().toString()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Soil type not found in configuration: " + updatedField.getFieldSoilType()));
+
+        existingField.setEvaporationCoeff(fieldConfig.getEvaporationCoeff());
+        existingField.setMaxEvaporationDepth(fieldConfig.getMaxEvaporationDepth());
+        existingField.setFieldCapacity(fieldConfig.getFieldCapacity());
+        existingField.setWiltingPoint(fieldConfig.getWiltingPoint());
+        existingField.setBulkDensity(fieldConfig.getBulkDensity());
+        existingField.setSaturation(fieldConfig.getSaturation());
+        existingField.setInfiltrationRate(fieldConfig.getInfiltrationRate());
+        existingField.setElevation(elevationService.getElevation(updatedField.getLatitude(), updatedField.getLongitude()).getFirstElevation());
+
+        // Update FieldCurrentValues if applicable
+        if (existingField.getCurrentValues() != null) {
+            FieldCurrentValues currentValues = existingField.getCurrentValues();
+            currentValues.setKeValue(updatedField.getCurrentValues().getKeValue());
+            currentValues.setTewValue(updatedField.getCurrentValues().getTewValue());
+            currentValues.setRewValue(updatedField.getCurrentValues().getRewValue());
+            // Update other fields in FieldCurrentValues as necessary
+        }
+
+        // Save and return the updated Field
+        return fieldRepository.save(existingField);
     }
 
     public List<Field> getAllFields() {

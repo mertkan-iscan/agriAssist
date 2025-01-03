@@ -1,10 +1,8 @@
 package io.mertkaniscan.automation_engine.config;
 
 import io.mertkaniscan.automation_engine.components.tasks.FieldCurrentUpdaterTaskJob;
-import io.mertkaniscan.automation_engine.components.tasks.daily.DailyTaskJob;
-import io.mertkaniscan.automation_engine.components.tasks.daily.EndDailyTaskJob;
-import io.mertkaniscan.automation_engine.components.tasks.daily.StartDailyTaskJob;
-import io.mertkaniscan.automation_engine.components.tasks.hourly.HourlyTaskJob;
+import io.mertkaniscan.automation_engine.components.tasks.DailyTaskJob;
+import io.mertkaniscan.automation_engine.components.tasks.HourlyTaskJob;
 import org.quartz.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +17,6 @@ public class QuartzConfig {
                 .storeDurably()
                 .build();
     }
-
     @Bean
     public Trigger dailyDataUpdaterTaskTrigger() {
         return TriggerBuilder.newTrigger()
@@ -30,7 +27,6 @@ public class QuartzConfig {
     }
 
 
-
     @Bean
     public JobDetail hourlyDataUpdaterTaskJobDetail() {
         return JobBuilder.newJob(HourlyTaskJob.class)
@@ -38,7 +34,6 @@ public class QuartzConfig {
                 .storeDurably()
                 .build();
     }
-
     @Bean
     public Trigger hourlyDataUpdaterTaskTrigger() {
         return TriggerBuilder.newTrigger()
@@ -63,44 +58,6 @@ public class QuartzConfig {
                 .forJob(fieldCurrentVariableUpdaterTaskJobDetail())
                 .withIdentity("fieldCurrentVariableUpdaterTaskTrigger")
                 .withSchedule(CronScheduleBuilder.cronSchedule("0 * * * * ?"))
-                .build();
-    }
-
-
-
-
-
-    @Bean
-    public JobDetail startOfDayTaskJobDetail() {
-        return JobBuilder.newJob(StartDailyTaskJob.class)
-                .withIdentity("startOfDayTaskJobDetail")
-                .storeDurably()
-                .build();
-    }
-
-    @Bean
-    public Trigger startOfDayTaskTrigger() {
-        return TriggerBuilder.newTrigger()
-                .forJob(startOfDayTaskJobDetail())
-                .withIdentity("startOfDayTaskTrigger")
-                .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(0, 0)) // Gün başlangıcı (00:00)
-                .build();
-    }
-
-    @Bean
-    public JobDetail endOfDayTaskJobDetail() {
-        return JobBuilder.newJob(EndDailyTaskJob.class)
-                .withIdentity("endOfDayTaskJobDetail")
-                .storeDurably()
-                .build();
-    }
-
-    @Bean
-    public Trigger endOfDayTaskTrigger() {
-        return TriggerBuilder.newTrigger()
-                .forJob(endOfDayTaskJobDetail())
-                .withIdentity("endOfDayTaskTrigger")
-                .withSchedule(CronScheduleBuilder.cronSchedule("59 59 23 * * ?")) // Gün sonu (23:59:59)
                 .build();
     }
 }

@@ -118,23 +118,29 @@ public class DailyTaskService {
             Timestamp sunrise = new Timestamp(sunriseEpoch * 1000L);
             Timestamp sunset = new Timestamp(sunsetEpoch * 1000L);
 
-            //Double TAW = calculatorService.calculateSensorTAW(field, 10);
-            //Double TEW = calculatorService.calculateSensorTEW(field, 10);
+            Double TAW = calculatorService.calculateSensorTAW(field, 10);
+            Double TEW = calculatorService.calculateSensorTEW(field, 10);
+
+            Double RAW = calculatorService.calculateSensorRAW(field);
+            Double REW = calculatorService.calculateSensorREW(field);
+
+            Double Kr = calculatorService.calculateSensorKr(field);
 
             // Create new Day entity
             Day day = new Day();
-
-            //day.setTAWValueDaily(TAW);
-            //day.setTEWValueDaily(TEW);
-
-            day.setDate(currentDate);
             day.setPlant(plant);
+            day.setDate(currentDate);
 
             day.setSunrise(sunrise);
             day.setSunset(sunset);
 
             day.setWeatherResponse(weatherResponse);
             day.setSolarResponse(solarResponse);
+
+            day.setTAWValueDaily(TAW);
+            day.setTEWValueDaily(TEW);
+            day.setRAWValueDaily(RAW);
+            day.setREWValueDaily(REW);
 
             Double guessedEto = eToCalculatorService.calculateEToDaily(weatherResponse, solarResponse, field);
             day.setGuessedEtoDaily(guessedEto);

@@ -41,7 +41,6 @@ public class Hour {
     @Column
     private Double REWValueHourly;
 
-
     // ETo
     @Column
     private Double forecastEToHourly;

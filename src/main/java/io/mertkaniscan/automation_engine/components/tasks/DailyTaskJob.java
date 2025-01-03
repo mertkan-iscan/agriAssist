@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.components.tasks.daily;
+package io.mertkaniscan.automation_engine.components.tasks;
 
 import io.mertkaniscan.automation_engine.services.task_services.DailyTaskService;
 import org.quartz.Job;

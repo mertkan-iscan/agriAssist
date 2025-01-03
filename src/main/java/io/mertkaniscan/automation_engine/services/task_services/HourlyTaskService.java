@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
-public class UpdateHourlyRecordTaskService {
+public class HourlyTaskService {
 
     private final FieldRepository fieldRepository;
     private final DayRepository dayRepository;
@@ -29,10 +29,10 @@ public class UpdateHourlyRecordTaskService {
     private final EToCalculatorService eToCalculatorService;
     private final SensorDataService sensorDataService;
 
-    public UpdateHourlyRecordTaskService(FieldRepository fieldRepository,
-                                         DayRepository dayRepository,
-                                         WeatherForecastService weatherForecastService,
-                                         CalculatorService calculatorService, EToCalculatorService eToCalculatorService, SensorDataService sensorDataService) {
+    public HourlyTaskService(FieldRepository fieldRepository,
+                             DayRepository dayRepository,
+                             WeatherForecastService weatherForecastService,
+                             CalculatorService calculatorService, EToCalculatorService eToCalculatorService, SensorDataService sensorDataService) {
 
         this.fieldRepository = fieldRepository;
         this.dayRepository = dayRepository;
@@ -42,7 +42,7 @@ public class UpdateHourlyRecordTaskService {
         this.sensorDataService = sensorDataService;
     }
 
-    public void updateHourlyRecords() {
+    public void setHourlyRecords() {
         log.info("Starting hourly record update task.");
         fieldRepository.findAll().forEach(this::updateFieldHourlyRecords);
         log.info("Hourly record update task completed.");
@@ -75,8 +75,8 @@ public class UpdateHourlyRecordTaskService {
                     .findFirst()
                     .ifPresent(hour -> {
 
-                        updateHourRecord(hour, field, hourIndex);
-                        setNotUpdatedHourValues(field);
+                        setHourWeatherValues(hour, field, hourIndex);
+                        setHourWaterValues(field);
 
                     });
 
@@ -85,7 +85,7 @@ public class UpdateHourlyRecordTaskService {
         }
     }
 
-    private void updateHourRecord(Hour hour, Field field, int hourIndex) {
+    private void setHourWeatherValues(Hour hour, Field field, int hourIndex) {
         try {
             // pull fresh weather data
             WeatherResponse weatherResponse = weatherForecastService.getWeatherDataObj(
@@ -159,7 +159,7 @@ public class UpdateHourlyRecordTaskService {
     }
 
     @Transactional
-    public void setNotUpdatedHourValues(Field field) {
+    public void setHourWaterValues(Field field) {
         try {
             // Check if the field has an associated plant
             if (field.getPlantInField() == null) {
@@ -179,7 +179,6 @@ public class UpdateHourlyRecordTaskService {
 
             Double Kr = calculatorService.calculateSensorKr(field);
 
-            // Find today's record
             Day today = dayRepository.findByPlant_PlantIDAndDateWithHours(
                     field.getPlantInField().getPlantID(),
                     Timestamp.valueOf(LocalDate.now().atStartOfDay())

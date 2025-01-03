@@ -1,47 +1,70 @@
 package io.mertkaniscan.automation_engine.utils.config_loader;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
 
-@Setter
 @Getter
+@Setter
 public class PlantConfig {
 
-    // Getters and Setters
-    private String plantType;       // Plant type (e.g., LETTUCE, TOMATO)
-    private double rootZoneDepth;   // Root zone depth (m)
-    private double allowableDepletion; // Allowable depletion rate (0-1)
-    private KcValues kcValues;      // Kc values for different growth stages
-    private List<String> stages;    // List of plant-specific growth stages
+    private String plantType;
+    private List<StageConfig> stages;
 
-    // Nested KcValues class
-    @Setter
-    @Getter
-    public static class KcValues {
-        private double kcInit;      // Kc value for initial stage
-        private double kcMid;       // Kc value for mid stage
-        private double kcLate;      // Kc value for late stage
-
-        @Override
-        public String toString() {
-            return "KcValues{" +
-                    "kcInit=" + kcInit +
-                    ", kcMid=" + kcMid +
-                    ", kcLate=" + kcLate +
-                    '}';
-        }
+    public PlantConfig() {
+        // No-args constructor for Jackson
     }
 
-    @Override
-    public String toString() {
-        return "PlantConfig{" +
-                "plantType='" + plantType + '\'' +
-                ", rootZoneDepth=" + rootZoneDepth +
-                ", allowableDepletion=" + allowableDepletion +
-                ", kcValues=" + kcValues +
-                ", stages=" + stages +
-                '}';
+    @Getter
+    @Setter
+    public static class StageConfig {
+        private String stageName;
+        private Double rootZoneDepth;
+        private Double allowableDepletion;
+        private Double kcValue;
+        private int minDays;
+        private int maxDays;
+        private DayValues dayValues;
+        private NightValues nightValues;
+
+        public StageConfig() {
+            // No-args constructor for Jackson
+        }
+
+        @Getter
+        @Setter
+        public static class DayValues {
+            @JsonProperty("Tmax")
+            private Double tmax;
+            @JsonProperty("Tmin")
+            private Double tmin;
+            @JsonProperty("RHMax")
+            private Double rhmax;
+            @JsonProperty("RHMin")
+            private Double rhmin;
+
+            public DayValues() {
+                // No-args constructor for Jackson
+            }
+        }
+
+        @Getter
+        @Setter
+        public static class NightValues {
+            @JsonProperty("Tmax")
+            private Double tmax;
+            @JsonProperty("Tmin")
+            private Double tmin;
+            @JsonProperty("RHMax")
+            private Double rhmax;
+            @JsonProperty("RHMin")
+            private Double rhmin;
+
+            public NightValues() {
+                // No-args constructor for Jackson
+            }
+        }
     }
 }

@@ -13,7 +13,7 @@ public class SoilMoistureCalculatorService {
     private static final double VERTICAL_FACTOR   = 1.0;
 
 
-    public static double calculateSphericalMoisture(double radius,
+    public double calculateSphericalMoisture(double radius,
                                                     double[][] sensorReadings2D) {
         // 1) Grid'i kürenin geometrisine göre tanımlayalım:
         //

@@ -115,6 +115,14 @@ public class UpdateFieldCurrentTaskService {
 
             FieldCurrentValues newCurrentValues = field.getCurrentValues();
 
+            if (newCurrentValues == null) {
+
+                newCurrentValues = new FieldCurrentValues();
+                newCurrentValues.setField(field);
+
+                field.setCurrentValues(newCurrentValues);
+            }
+
             newCurrentValues.setDeValue(0.0);
             newCurrentValues.setWetArea(0.0);
 
@@ -134,12 +142,13 @@ public class UpdateFieldCurrentTaskService {
             WeatherResponse.Rain rain = weatherResponse.getCurrent().getRain();
             if (rain != null && rain.getOneHour() != null && rain.getOneHour() > 0) {
                 newCurrentValues.setIsRaining(true);
+            } else {
+                newCurrentValues.setIsRaining(false);
             }
 
             newCurrentValues.setTewValue(calculatorService.calculateSensorTEW(field, 10));
             newCurrentValues.setTawValue(calculatorService.calculateSensorTAW(field, 10));
             field.setCurrentValues(newCurrentValues);
-
 
             newCurrentValues.setRewValue(calculatorService.calculateSensorREW(field));
             newCurrentValues.setRawValue(calculatorService.calculateSensorRAW(field));

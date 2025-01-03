@@ -15,9 +15,9 @@ public class DeviceCommandConfigLoader {
     static {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            configRoot = objectMapper.readTree(new File("src/main/resources/configs/device_commands_config.json"));
+            configRoot = objectMapper.readTree(new File("src/main/resources/configs/device-commands-config.json"));
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load device_commands_config.json: " + e.getMessage());
+            throw new RuntimeException("Failed to load device-commands-config.json: " + e.getMessage());
         }
     }
 
