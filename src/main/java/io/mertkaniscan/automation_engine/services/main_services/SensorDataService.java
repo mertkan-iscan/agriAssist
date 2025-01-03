@@ -2,7 +2,6 @@ package io.mertkaniscan.automation_engine.services.main_services;
 
 import io.mertkaniscan.automation_engine.models.SensorData;
 import io.mertkaniscan.automation_engine.repositories.SensorDataRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,12 +29,10 @@ public class SensorDataService {
         return sensorDataRepository.findById(id).orElse(null);
     }
 
-    public boolean deleteSensorData(int id) {
+    public void deleteSensorData(int id) {
         if (sensorDataRepository.existsById(id)) {
             sensorDataRepository.deleteById(id);
-            return true;
         }
-        return false;
     }
 
     public List<SensorData> getSensorDataByFieldIDAndTypeFromDb(int fieldID, String dataType) {

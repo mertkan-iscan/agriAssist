@@ -16,16 +16,12 @@ import java.util.Set;
 @Table(name = "fields")
 public class Field {
 
+    @OneToOne(mappedBy = "field", cascade = CascadeType.ALL, orphanRemoval = true)
+    private FieldCurrentValues currentValues;
+
     public enum FieldType {
         OUTDOOR,
         GREENHOUSE,
-    }
-
-    public enum SoilType {
-        SANDYLOAM,
-        SILTLOAM,
-        CLAY,
-        LOAM
     }
 
     public enum FieldIrrigationStatus {
@@ -37,76 +33,43 @@ public class Field {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "fieldid")
     private Integer fieldID;
-
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Timestamp fieldCreationDate;
-
     @Column(nullable = false, unique = true)
     private String fieldName;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FieldType fieldType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private SoilType fieldSoilType;
-
-    @Column(nullable = false)
-    private Double fieldCapacity;
-
-    @Column(nullable = false)
-    private Double wiltingPoint;
-
-    @Column(nullable = false)
-    private Double bulkDensity; // soil density (g/cm³)
-
-    @Column(nullable = false)
-    private Double saturation; // Toprağın maksimum su kapasitesi
-
-    @Column(nullable = false)
-    private Double infiltrationRate;//(mm/hour)
-
-    @Column(nullable = false)
-    private Double evaporationCoeff;
-
     @Column(nullable = false)
     private Double totalArea; //m2
-
     @Column(nullable = false)
     private Double latitude;
-
     @Column(nullable = false)
     private Double longitude;
-
     @Column(nullable = false)
     private Double elevation;
 
+    // soil variables
+    @Column(nullable = false)
+    private String fieldSoilType;
+    @Column(nullable = false)
+    private Double fieldCapacity;
+    @Column(nullable = false)
+    private Double wiltingPoint;
+    @Column(nullable = false)
+    private Double bulkDensity; // soil density (g/cm³)
+    @Column(nullable = false)
+    private Double saturation; // Toprağın maksimum su kapasitesi
+    @Column(nullable = false)
+    private Double infiltrationRate;//(mm/hour)
+    @Column(nullable = false)
+    private Double evaporationCoeff;
     @Column(nullable = false)
     private Double maxEvaporationDepth;
 
-    @Column
-    private Double currentKeValue= 0.0;
-
-    @Column
-    private Double currentTEWValue= 0.0;
-
-    @Column
-    private Double currentREWValue = 0.0;
-
-    @Column
-    private Double currentWetArea;
-
-    @Column
-    private Double currentDeValue;
-
-    @Column
-    private Double currentWindSpeed;
-
-    @Column
-    private Boolean isRaining = false;
-
+    // relations
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "plant_id", referencedColumnName = "plantID")
     private Plant plantInField;
@@ -128,7 +91,9 @@ public class Field {
     private Set<SensorData> sensorData;
 
 
-    public Field(Integer fieldID, String fieldName, FieldType fieldType, SoilType fieldSoilType, Plant plantInField,
+    public Field() {}
+
+    public Field(Integer fieldID, String fieldName, FieldType fieldType, String fieldSoilType, Plant plantInField,
                  Double fieldCapacity, Double wiltingPoint, Double bulkDensity, Double saturation,
                  Double infiltrationRate, Double totalArea, Double latitude, Double longitude, Timestamp fieldCreationDate) {
 
@@ -147,8 +112,4 @@ public class Field {
         this.longitude = longitude;
         this.fieldCreationDate = fieldCreationDate;
     }
-
-    public Field() {}
-
-
 }

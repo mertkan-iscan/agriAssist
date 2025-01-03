@@ -63,6 +63,11 @@ public class FieldService {
                 ).getFirstElevation()
         );
 
+
+        FieldCurrentValues newCurrentValues = new FieldCurrentValues();
+        field.setCurrentValues(newCurrentValues);
+
+        field.setEvaporationCoeff(fieldConfig.getEvaporationCoeff());
         field.setMaxEvaporationDepth(fieldConfig.getMaxEvaporationDepth());
         field.setFieldCapacity(fieldConfig.getFieldCapacity());
         field.setWiltingPoint(fieldConfig.getWiltingPoint());

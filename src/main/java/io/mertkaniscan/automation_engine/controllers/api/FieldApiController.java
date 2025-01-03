@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/fields")
@@ -31,6 +33,13 @@ public class FieldApiController {
         this.fieldService = fieldService;
         this.deviceService = deviceService;
         this.irrigationService = irrigationService;
+    }
+
+    @GetMapping("/types")
+    public List<String> getFieldTypes() {
+        return Stream.of(Field.FieldType.values())
+                .map(Enum::name)
+                .collect(Collectors.toList());
     }
 
     @PostMapping("/add")

@@ -4,6 +4,7 @@ import io.mertkaniscan.automation_engine.models.*;
 import io.mertkaniscan.automation_engine.repositories.DayRepository;
 import io.mertkaniscan.automation_engine.repositories.FieldRepository;
 import io.mertkaniscan.automation_engine.services.CalculatorService;
+import io.mertkaniscan.automation_engine.services.EToCalculatorService;
 import io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service.SolarResponse;
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
@@ -19,23 +20,25 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
-public class HourlyTaskService {
+public class UpdateHourlyRecordTaskService {
 
     private final FieldRepository fieldRepository;
     private final DayRepository dayRepository;
     private final WeatherForecastService weatherForecastService;
     private final CalculatorService calculatorService;
+    private final EToCalculatorService eToCalculatorService;
     private final SensorDataService sensorDataService;
 
-    public HourlyTaskService(FieldRepository fieldRepository,
-                             DayRepository dayRepository,
-                             WeatherForecastService weatherForecastService,
-                             CalculatorService calculatorService, SensorDataService sensorDataService) {
+    public UpdateHourlyRecordTaskService(FieldRepository fieldRepository,
+                                         DayRepository dayRepository,
+                                         WeatherForecastService weatherForecastService,
+                                         CalculatorService calculatorService, EToCalculatorService eToCalculatorService, SensorDataService sensorDataService) {
 
         this.fieldRepository = fieldRepository;
         this.dayRepository = dayRepository;
         this.weatherForecastService = weatherForecastService;
         this.calculatorService = calculatorService;
+        this.eToCalculatorService = eToCalculatorService;
         this.sensorDataService = sensorDataService;
     }
 
@@ -48,6 +51,12 @@ public class HourlyTaskService {
     @Transactional
     public void updateFieldHourlyRecords(Field field) {
         try {
+
+            if (field.getPlantInField() == null) {
+                log.warn("No plant associated with field '{}'. Skipping hourly record update.", field.getFieldName());
+                return;
+            }
+
             LocalDateTime now = LocalDateTime.now();
             int hourIndex = now.getHour();
 
@@ -65,26 +74,15 @@ public class HourlyTaskService {
                     .filter(hour -> hour.getHourIndex() == hourIndex)
                     .findFirst()
                     .ifPresent(hour -> {
+
                         updateHourRecord(hour, field, hourIndex);
-                        //updateDepletionValue(hour, field);
+                        setNotUpdatedHourValues(field);
+
                     });
 
         } catch (Exception e) {
             log.error("Error updating hourly records for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
         }
-    }
-
-
-    private void setNotUpdatedHourValues(Hour hour, Field field) {
-
-        Double TAW = calculatorService.calculateSensorTAW(field, 10);
-        Double TEW = calculatorService.calculateSensorTEW(field, 10);
-        Double Kr = calculatorService.calculateSensorKr(field);
-
-        hour.setTAWValueHourly(TAW);
-        hour.setTEWValueHourly(TEW);
-        hour.setKrValue(Kr);
-
     }
 
     private void updateHourRecord(Hour hour, Field field, int hourIndex) {
@@ -113,7 +111,7 @@ public class HourlyTaskService {
             }
 
             // Calculate the ETo for the current hour
-            double sensorEToHourly = calculatorService.calculateSensorEToHourly(
+            double sensorEToHourly = eToCalculatorService.calculateSensorEToHourly(
                     meanTemperature,
                     meanHumidity,
                     weatherResponse,
@@ -121,7 +119,7 @@ public class HourlyTaskService {
                     field,
                     hourIndex);
 
-            double currentEToHourly = calculatorService.calculateCurrentEToHourly(
+            double currentEToHourly = eToCalculatorService.calculateCurrentEToHourly(
                     weatherResponse,
                     solarResponse,
                     field,
@@ -141,7 +139,7 @@ public class HourlyTaskService {
             hour.setSensorTemperature(meanTemperature);
             hour.setSensorHumidity(meanHumidity);
 
-            hour.setSolarRadiation(calculatorService.calculateSolarRadiationHourly(weatherResponse, solarResponse, hourIndex));
+            hour.setSolarRadiation(eToCalculatorService.calculateSolarRadiationHourly(weatherResponse, solarResponse, hourIndex));
 
             WeatherResponse.Rain rain = weatherResponse.getCurrent().getRain();
 
@@ -160,22 +158,76 @@ public class HourlyTaskService {
         }
     }
 
-    private void updateDepletionValue(Hour hour, Field field) {
+    @Transactional
+    public void setNotUpdatedHourValues(Field field) {
         try {
-            Timestamp currentHourTimestamp = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
-            double fieldCapacity = field.getFieldCapacity();
-            double currentSoilMoisture = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "soil_moisture", currentHourTimestamp);
-            double depletionValue = fieldCapacity - currentSoilMoisture;
+            // Check if the field has an associated plant
+            if (field.getPlantInField() == null) {
+                log.warn("No plant associated with field '{}'. Skipping.", field.getFieldName());
+                return;
+            }
 
-            hour.setDeValue(depletionValue);
-            hour.setLastUpdated(LocalDateTime.now());
+            LocalDateTime now = LocalDateTime.now();
+            int hourIndex = now.getHour();
 
-            dayRepository.save(hour.getDay());
+            // Calculate TAW, TEW, and Kr values
+            Double TAW = calculatorService.calculateSensorTAW(field, 10);
+            Double TEW = calculatorService.calculateSensorTEW(field, 10);
 
-            log.info("Updated depletion value for hour={} in field '{}'. Depletion Value: {}", hour.getHourIndex(), field.getFieldName(), depletionValue);
+            Double RAW = calculatorService.calculateSensorRAW(field);
+            Double REW = calculatorService.calculateSensorREW(field);
+
+            Double Kr = calculatorService.calculateSensorKr(field);
+
+            // Find today's record
+            Day today = dayRepository.findByPlant_PlantIDAndDateWithHours(
+                    field.getPlantInField().getPlantID(),
+                    Timestamp.valueOf(LocalDate.now().atStartOfDay())
+            );
+
+            if (today == null) {
+                log.warn("No Day record found for field '{}'. Skipping.", field.getFieldName());
+                return;
+            }
+
+            // Update the hour record
+            today.getHours().stream()
+                    .filter(hour -> hour.getHourIndex() == hourIndex)
+                    .findFirst()
+                    .ifPresent(hour -> {
+
+                        hour.setTAWValueHourly(TAW);
+                        hour.setTEWValueHourly(TEW);
+
+                        hour.setRAWValueHourly(RAW);
+                        hour.setREWValueHourly(REW);
+
+                        hour.setKrValue(Kr);
+
+                        dayRepository.save(hour.getDay());
+                    });
 
         } catch (Exception e) {
-            log.error("Failed to update Depletion value for hour={} in field '{}'. Error: {}", hour.getHourIndex(), field.getFieldName(), e.getMessage(), e);
+            log.error("Error setting hourly record values for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
         }
     }
+
+//    private void updateDepletionValue(Hour hour, Field field) {
+//        try {
+//            Timestamp currentHourTimestamp = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
+//            double fieldCapacity = field.getFieldCapacity();
+//            double currentSoilMoisture = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "soil_moisture", currentHourTimestamp);
+//            double depletionValue = fieldCapacity - currentSoilMoisture;
+//
+//            hour.setDeValue(depletionValue);
+//            hour.setLastUpdated(LocalDateTime.now());
+//
+//            dayRepository.save(hour.getDay());
+//
+//            log.info("Updated depletion value for hour={} in field '{}'. Depletion Value: {}", hour.getHourIndex(), field.getFieldName(), depletionValue);
+//
+//        } catch (Exception e) {
+//            log.error("Failed to update Depletion value for hour={} in field '{}'. Error: {}", hour.getHourIndex(), field.getFieldName(), e.getMessage(), e);
+//        }
+//    }
 }

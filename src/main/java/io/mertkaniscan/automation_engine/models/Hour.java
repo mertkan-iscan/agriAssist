@@ -13,16 +13,25 @@ import java.time.LocalDateTime;
 @Table(name = "hours")
 public class Hour {
 
+    //@Column
+    //private Double guessedWaterVolume;
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int hourID;
-
     @Column(nullable = false)
     private int hourIndex;
+    @Column
+    private LocalDateTime lastUpdated;
 
+    // evaporation
     @Column
     private Double KeValue;
+    @Column
+    private Double KrValue;
 
+    // water
     @Column
     private Double TAWValueHourly;
     @Column
@@ -32,35 +41,31 @@ public class Hour {
     @Column
     private Double REWValueHourly;
 
-    //@Column
-    //private Double guessedWaterVolume;
 
+    // ETo
     @Column
     private Double forecastEToHourly;
-
     @Column
     private Double sensorEToHourly;
-
     @Column
     private Double guessedEtoHourly;
 
+    //sensor
     @Column
     private Double sensorTemperature;
-
-    @Column
-    private Double forecastTemperature;
-
-    @Column
-    private Double forecastWindSpeed;
-
     @Column
     private Double sensorHumidity;
 
+    //forecast
+    @Column
+    private Double forecastTemperature;
     @Column
     private Double forecastHumidity;
-
+    @Column
+    private Double forecastWindSpeed;
     @Column
     private Double forecastPrecipitation;
+
 
     @Column
     private Double happenedPrecipitation;
@@ -70,12 +75,6 @@ public class Hour {
 
     @Column
     private Double DeValue;
-
-    @Column
-    private Double KrValue;
-
-    @Column
-    private LocalDateTime lastUpdated;
 
     @Column
     private Double hourlyDepletion;

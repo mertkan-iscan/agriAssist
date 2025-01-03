@@ -63,6 +63,15 @@ public class Calculators {
         return KcMaxBase;
     }
 
+    public static double calculateKcbAdjusted(double Kcb, double humidity, double windSpeed, double plantHeight) {
+
+        double windEffect = 0.04 * (windSpeed - 2);
+        double humidityEffect = -0.004 * (humidity - 45);
+        double heightEffect = Math.pow(plantHeight/3,0.3);
+
+        return Kcb + (windEffect + humidityEffect) * heightEffect;
+    }
+
     public static double calculateTEW(double FieldCapacity, double WiltingPoint, double Ze) {
         return (FieldCapacity - WiltingPoint) * Ze;
     }
@@ -71,8 +80,8 @@ public class Calculators {
         return Math.max(0, (soilWaterPercentage - wiltingPoint) * maxEvaporationDepth);
     }
 
-    public static double calculateREW(double TEW, double p) {
-        return TEW * p;
+    public static double calculateSensorREW(double TEW, double evaporationCoeff) {
+        return TEW * evaporationCoeff;
     }
 
     public static double calculateTAW(double SoilMoisture, double WiltingPoint, double RZD) {
@@ -83,12 +92,27 @@ public class Calculators {
         return (SensorMoisture - WiltingPoint) * RZD;
     }
 
-    public static double calculateRAW(double TAW, double AD) {
-        return TAW * AD;
+    public static double calculateSensorRAW(double TAW, double allowableDepletion) {
+        return TAW * allowableDepletion;
+    }
+
+    public static double calculateAdjustedAllowableDepletion(double standardP, double etc) {
+        // Validate input
+        if (standardP < 0 || standardP > 1) {
+            throw new IllegalArgumentException("Standard p must be between 0 and 1.");
+        }
+        if (etc < 0) {
+            throw new IllegalArgumentException("ETc cannot be negative.");
+        }
+
+        // Adjust p value using the formula
+        double adjustedP = standardP + 0.04 * (5 - etc);
+
+        // Ensure p is within valid range [0, 1]
+        return Math.max(0, Math.min(1, adjustedP));
     }
 
     public static double calculateIrrigationInterval(double RAW, double ETc) {
         return RAW / ETc;
     }
-
 }

@@ -1,6 +1,6 @@
 package io.mertkaniscan.automation_engine.components.tasks.hourly;
 
-import io.mertkaniscan.automation_engine.services.task_services.HourlyTaskService;
+import io.mertkaniscan.automation_engine.services.task_services.UpdateHourlyRecordTaskService;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.springframework.stereotype.Component;
@@ -8,14 +8,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class HourlyTaskJob implements Job {
 
-    private final HourlyTaskService hourlyTaskService;
+    private final UpdateHourlyRecordTaskService updateHourlyRecordTaskService;
 
-    public HourlyTaskJob(HourlyTaskService hourlyTaskService) {
-        this.hourlyTaskService = hourlyTaskService;
+    public HourlyTaskJob(UpdateHourlyRecordTaskService updateHourlyRecordTaskService) {
+        this.updateHourlyRecordTaskService = updateHourlyRecordTaskService;
     }
 
     @Override
     public void execute(JobExecutionContext context) {
-        hourlyTaskService.updateHourlyRecords();
+        updateHourlyRecordTaskService.updateHourlyRecords();
     }
 }

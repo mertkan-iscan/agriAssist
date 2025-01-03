@@ -7,6 +7,7 @@ import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.repositories.DayRepository;
 import io.mertkaniscan.automation_engine.repositories.FieldRepository;
 import io.mertkaniscan.automation_engine.services.CalculatorService;
+import io.mertkaniscan.automation_engine.services.EToCalculatorService;
 import io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service.SolarResponse;
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
@@ -30,18 +31,20 @@ public class StartDailyTaskService {
     private final DayRepository dayRepository;
     private final WeatherForecastService weatherForecastService;
     private final CalculatorService calculatorService;
+    private final EToCalculatorService eToCalculatorService;
     private final FieldService fieldService;
     private final SensorDataService sensorDataService;
 
     public StartDailyTaskService(FieldRepository fieldRepository,
                                  DayRepository dayRepository,
                                  WeatherForecastService weatherForecastService,
-                                 CalculatorService calculatorService, FieldService fieldService, SensorDataService sensorDataService) {
+                                 CalculatorService calculatorService, EToCalculatorService eToCalculatorService, FieldService fieldService, SensorDataService sensorDataService) {
 
         this.fieldRepository = fieldRepository;
         this.dayRepository = dayRepository;
         this.weatherForecastService = weatherForecastService;
         this.calculatorService = calculatorService;
+        this.eToCalculatorService = eToCalculatorService;
         this.fieldService = fieldService;
         this.sensorDataService = sensorDataService;
     }
@@ -95,7 +98,7 @@ public class StartDailyTaskService {
             day.setWeatherResponse(weatherResponse);
             day.setSolarResponse(solarResponse);
 
-            Double guessedEto = calculatorService.calculateEToDaily(weatherResponse, solarResponse, field);
+            Double guessedEto = eToCalculatorService.calculateEToDaily(weatherResponse, solarResponse, field);
             day.setGuessedEtoDaily(guessedEto);
 
             return day;
@@ -143,7 +146,7 @@ public class StartDailyTaskService {
             hourRecord.setForecastWindSpeed(windSpeed);
 
 
-            double eto = calculatorService.calculateForecastEToHourly(
+            double eto = eToCalculatorService.calculateForecastEToHourly(
                     weatherResponse,
                     solarResponse,
                     field,
@@ -171,6 +174,7 @@ public class StartDailyTaskService {
     }
 
     private void updateHourData(Hour hour, Field field, int hourIndex, Day day) {
+
         try {
             LocalDate currentDate = LocalDate.now();
             Timestamp startOfHour = Timestamp.valueOf(currentDate.atTime(hourIndex, 0));
@@ -189,7 +193,7 @@ public class StartDailyTaskService {
                 hour.setLastUpdated(LocalDateTime.now());
 
                 if (meanTemperature != null && meanHumidity != null ) {
-                    double sensorETo = calculatorService.calculateSensorEToHourly(
+                    double sensorETo = eToCalculatorService.calculateSensorEToHourly(
                             meanTemperature,
                             meanHumidity,
                             weatherResponse,
@@ -215,7 +219,7 @@ public class StartDailyTaskService {
             hour.setForecastHumidity(forecastRH);
             hour.setForecastWindSpeed(windSpeed);
 
-            double eto = calculatorService.calculateForecastEToHourly(
+            double eto = eToCalculatorService.calculateForecastEToHourly(
                     weatherResponse, solarResponse, field, hourIndex
             );
 

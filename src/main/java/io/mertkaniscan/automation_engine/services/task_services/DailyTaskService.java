@@ -4,6 +4,7 @@ import io.mertkaniscan.automation_engine.models.*;
 import io.mertkaniscan.automation_engine.repositories.DayRepository;
 import io.mertkaniscan.automation_engine.repositories.FieldRepository;
 import io.mertkaniscan.automation_engine.services.CalculatorService;
+import io.mertkaniscan.automation_engine.services.EToCalculatorService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import io.mertkaniscan.automation_engine.services.forecast_services.solar_forecast_service.SolarResponse;
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherForecastService;
@@ -27,17 +28,19 @@ public class DailyTaskService {
     private final DayRepository dayRepository;
     private final WeatherForecastService weatherForecastService;
     private final CalculatorService calculatorService;
+    private final EToCalculatorService eToCalculatorService;
     private final FieldService fieldService;
     private final SensorDataService sensorDataService;
 
     public DailyTaskService(FieldRepository fieldRepository,
                             DayRepository dayRepository,
                             WeatherForecastService weatherForecastService,
-                            CalculatorService calculatorService, FieldService fieldService, SensorDataService sensorDataService) {
+                            CalculatorService calculatorService, EToCalculatorService eToCalculatorService, FieldService fieldService, SensorDataService sensorDataService) {
         this.fieldRepository = fieldRepository;
         this.dayRepository = dayRepository;
         this.weatherForecastService = weatherForecastService;
         this.calculatorService = calculatorService;
+        this.eToCalculatorService = eToCalculatorService;
         this.fieldService = fieldService;
         this.sensorDataService = sensorDataService;
     }
@@ -115,24 +118,14 @@ public class DailyTaskService {
             Timestamp sunrise = new Timestamp(sunriseEpoch * 1000L);
             Timestamp sunset = new Timestamp(sunsetEpoch * 1000L);
 
-
-            Double TAW = calculatorService.calculateSensorTAW(field, 10);
-            Double TEW = calculatorService.calculateSensorTEW(field, 10);
-
-            //get sensor data
-            //get plant RZD
-            // do interpolation
-            //calculate TAW
-
-            //get soil max evaporation depth
-            //calculateREW
-
+            //Double TAW = calculatorService.calculateSensorTAW(field, 10);
+            //Double TEW = calculatorService.calculateSensorTEW(field, 10);
 
             // Create new Day entity
             Day day = new Day();
 
-            day.setTAWValueDaily(TAW);
-            day.setTEWValueDaily(TEW);
+            //day.setTAWValueDaily(TAW);
+            //day.setTEWValueDaily(TEW);
 
             day.setDate(currentDate);
             day.setPlant(plant);
@@ -143,7 +136,7 @@ public class DailyTaskService {
             day.setWeatherResponse(weatherResponse);
             day.setSolarResponse(solarResponse);
 
-            Double guessedEto = calculatorService.calculateEToDaily(weatherResponse, solarResponse, field);
+            Double guessedEto = eToCalculatorService.calculateEToDaily(weatherResponse, solarResponse, field);
             day.setGuessedEtoDaily(guessedEto);
 
             return day;
@@ -191,7 +184,7 @@ public class DailyTaskService {
             hourRecord.setForecastWindSpeed(windSpeed);
 
 
-            double eto = calculatorService.calculateForecastEToHourly(
+            double eto = eToCalculatorService.calculateForecastEToHourly(
                     weatherResponse,
                     solarResponse,
                     field,
@@ -262,7 +255,7 @@ public class DailyTaskService {
                 hour.setLastUpdated(LocalDateTime.now());
 
                 if (meanTemperature != null && meanHumidity != null ) {
-                    double sensorETo = calculatorService.calculateSensorEToHourly(
+                    double sensorETo = eToCalculatorService.calculateSensorEToHourly(
                             meanTemperature,
                             meanHumidity,
                             weatherResponse,
@@ -288,7 +281,7 @@ public class DailyTaskService {
             hour.setForecastHumidity(forecastRH);
             hour.setForecastWindSpeed(windSpeed);
 
-            double eto = calculatorService.calculateForecastEToHourly(
+            double eto = eToCalculatorService.calculateForecastEToHourly(
                     weatherResponse, solarResponse, field, hourIndex
             );
 

@@ -55,7 +55,8 @@ public class HourlyEToCalculator {
         double Rn = calculateHourlyNetRadiation(radiationMJ, temp, ea, Rso);
 
         // Soil heat flux (MJ/m²/hour)
-        double G = calculateHourlySoilHeatFlux(Rn, isDaytime);
+        //double G = calculateHourlySoilHeatFlux(Rn, isDaytime);
+        double G = 0;
 
         // Temperature term for hourly ETo
         double tempTerm = (37 / (temp + 273)) * windSpeed * vpd;

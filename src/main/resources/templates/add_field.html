@@ -22,9 +22,7 @@
         <div class="mb-3">
             <label for="fieldType" class="form-label">Field Type:</label>
             <select class="form-select" id="fieldType" name="fieldType" required>
-                <option value="" disabled selected>Select field type</option>
-                <option value="SOILFIELD">Soil Field</option>
-                <option value="GREENHOUSE">Greenhouse</option>
+                <option value="" disabled selected>Loading field types...</option>
             </select>
         </div>
 
@@ -248,6 +246,32 @@
                 soilTypeSelect.innerHTML = '<option value="" disabled>Error loading soil types</option>';
             });
     });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const fieldTypeSelect = document.getElementById("fieldType");
+
+        fetch('/api/fields/types')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to fetch field types");
+                }
+                return response.json();
+            })
+            .then(fieldTypes => {
+                fieldTypeSelect.innerHTML = '<option value="" disabled selected>Select field type</option>';
+                fieldTypes.forEach(type => {
+                    const option = document.createElement("option");
+                    option.value = type;
+                    option.textContent = type;
+                    fieldTypeSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error("Error fetching field types:", error);
+                fieldTypeSelect.innerHTML = '<option value="" disabled>Error loading field types</option>';
+            });
+    });
+
 
 </script>
 
