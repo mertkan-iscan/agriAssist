@@ -174,8 +174,8 @@ public class HourlyTaskService {
             Double TAW = calculatorService.calculateSensorTAW(field, 10);
             Double TEW = calculatorService.calculateSensorTEW(field, 10);
 
-            Double RAW = calculatorService.calculateSensorRAW(field);
-            Double REW = calculatorService.calculateSensorREW(field);
+            Double RAW = calculatorService.calculateSensorRAW(TAW, field);
+            Double REW = calculatorService.calculateSensorREW(TEW, field);
 
             Double Kr = calculatorService.calculateSensorKr(field);
 
@@ -189,7 +189,6 @@ public class HourlyTaskService {
                 return;
             }
 
-            // Update the hour record
             today.getHours().stream()
                     .filter(hour -> hour.getHourIndex() == hourIndex)
                     .findFirst()

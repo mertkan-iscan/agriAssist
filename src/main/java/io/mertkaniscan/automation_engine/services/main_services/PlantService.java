@@ -19,19 +19,16 @@ public class PlantService {
 
     public Plant savePlant(Plant plant) {
 
-        // Retrieve the plant configuration based on the plant type
         PlantConfig plantConfig = configLoader.getPlantConfigs().stream()
                 .filter(config -> config.getPlantType().equalsIgnoreCase(plant.getPlantType()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Plant type not found in configuration: " + plant.getPlantType()));
 
-        // Retrieve the current stage configuration
         PlantConfig.StageConfig stageConfig = plantConfig.getStages().stream()
                 .filter(stage -> stage.getStageName().equalsIgnoreCase(plant.getPlantStage()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Plant stage not found in configuration: " + plant.getPlantStage()));
 
-        // Set values based on the current stage configuration
         plant.setCurrentKcValue(stageConfig.getKcValue());
         plant.setCurrentRootZoneDepth(stageConfig.getRootZoneDepth());
         plant.setAllowableDepletion(stageConfig.getAllowableDepletion());

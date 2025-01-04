@@ -27,8 +27,9 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Integer>
             @Param("since") Timestamp since
     );
 
-    @Query("SELECT sd FROM SensorData sd WHERE sd.timestamp BETWEEN :startTime AND :endTime AND KEY(sd.dataValues) = :dataType")
+    @Query("SELECT sd FROM SensorData sd WHERE sd.field.fieldID = :fieldID AND sd.timestamp BETWEEN :startTime AND :endTime AND KEY(sd.dataValues) = :dataType")
     List<SensorData> findSensorDataBetweenTimestamps(
+            @Param("fieldID") int fieldID,
             @Param("startTime") Timestamp startTime,
             @Param("endTime") Timestamp endTime,
             @Param("dataType") String dataType

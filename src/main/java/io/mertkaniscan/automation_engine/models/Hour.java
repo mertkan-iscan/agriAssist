@@ -13,75 +13,81 @@ import java.time.LocalDateTime;
 @Table(name = "hours")
 public class Hour {
 
-    //@Column
-    //private Double guessedWaterVolume;
-
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "hourid")
     private int hourID;
-    @Column(nullable = false)
+
+    @Column(name = "hour_index", nullable = false)
     private int hourIndex;
-    @Column
+
+    @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
     // evaporation
-    @Column
+    @Column(name = "ke_value")
     private Double KeValue;
-    @Column
+
+    @Column(name = "kr_value")
     private Double KrValue;
 
     // water
-    @Column
+    @Column(name = "taw_value_hourly")
     private Double TAWValueHourly;
-    @Column
+
+    @Column(name = "raw_value_hourly")
     private Double RAWValueHourly;
-    @Column
+
+    @Column(name = "tew_value_hourly")
     private Double TEWValueHourly;
-    @Column
+
+    @Column(name = "rew_value_hourly")
     private Double REWValueHourly;
 
     // ETo
-    @Column
+    @Column(name = "forecast_eto_hourly")
     private Double forecastEToHourly;
-    @Column
+
+    @Column(name = "sensor_eto_hourly")
     private Double sensorEToHourly;
-    @Column
+
+    @Column(name = "guessed_eto_hourly")
     private Double guessedEtoHourly;
 
-    //sensor
-    @Column
+    // sensor
+    @Column(name = "sensor_temperature")
     private Double sensorTemperature;
-    @Column
+
+    @Column(name = "sensor_humidity")
     private Double sensorHumidity;
 
-    //forecast
-    @Column
+    // forecast
+    @Column(name = "forecast_temperature")
     private Double forecastTemperature;
-    @Column
+
+    @Column(name = "forecast_humidity")
     private Double forecastHumidity;
-    @Column
+
+    @Column(name = "forecast_wind_speed")
     private Double forecastWindSpeed;
-    @Column
+
+    @Column(name = "forecast_precipitation")
     private Double forecastPrecipitation;
 
-
-    @Column
+    @Column(name = "happened_precipitation")
     private Double happenedPrecipitation;
 
-    @Column
+    @Column(name = "solar_radiation")
     private Double solarRadiation;
 
-    @Column
+    @Column(name = "de_value")
     private Double DeValue;
 
-    @Column
+    @Column(name = "hourly_depletion")
     private Double hourlyDepletion;
 
-    @Column
+    @Column(name = "calculated_kcb_adjusted")
     private Double calculatedKcbAdjusted;
-
-
 
     @ManyToOne
     @JoinColumn(name = "dayid", nullable = false)
@@ -96,12 +102,9 @@ public class Hour {
     }
 
     public Double getWindSpeed(Field.FieldType fieldType) {
-
         if (fieldType == Field.FieldType.GREENHOUSE) {
             return 0.0;
         }
-
         return this.forecastWindSpeed;
     }
-
 }

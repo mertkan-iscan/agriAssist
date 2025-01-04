@@ -59,11 +59,13 @@ public class EToCalculatorService {
 
     public double calculateForecastEToHourly(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
 
-
         double temp = weatherResponse.getHourly().get(hourIndex).getTemp();
         double humidity = weatherResponse.getHourly().get(hourIndex).getHumidity();
-        double latitude = field.getLatitude();
         double pressureHpa = weatherResponse.getHourly().get(hourIndex).getPressure();
+
+
+        double latitude = field.getLatitude();
+
 
         int cloudCoverage = weatherResponse.getHourly().get(hourIndex).getClouds();
         double clearSkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getClearSky().getGhi();
@@ -152,7 +154,6 @@ public class EToCalculatorService {
     }
 
     public double calculateSensorEToHourly(Double sensorTemp, Double sensorHumidity, WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
-
 
         double temp = sensorTemp;
         double humidity = sensorHumidity;

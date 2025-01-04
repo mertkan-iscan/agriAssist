@@ -121,6 +121,9 @@ public class UpdateFieldCurrentTaskService {
                 newCurrentValues.setField(field);
 
                 field.setCurrentValues(newCurrentValues);
+            } else {
+
+                resetFieldCurrentValues(newCurrentValues);
             }
 
             newCurrentValues.setDeValue(0.0);
@@ -150,8 +153,8 @@ public class UpdateFieldCurrentTaskService {
             newCurrentValues.setTawValue(calculatorService.calculateSensorTAW(field, 10));
             field.setCurrentValues(newCurrentValues);
 
-            newCurrentValues.setRewValue(calculatorService.calculateSensorREW(field));
-            newCurrentValues.setRawValue(calculatorService.calculateSensorRAW(field));
+            newCurrentValues.setRewValue(calculatorService.calculateSensorREW(field.getCurrentValues().getTewValue(), field));
+            newCurrentValues.setRawValue(calculatorService.calculateSensorRAW(field.getCurrentValues().getTawValue(), field));
 
             newCurrentValues.setKeValue(calculatorService.calculateKe(field));
             field.setCurrentValues(newCurrentValues);
@@ -164,5 +167,22 @@ public class UpdateFieldCurrentTaskService {
         } catch (Exception e) {
             log.error("Failed to update current record for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
         }
+    }
+
+    private void resetFieldCurrentValues(FieldCurrentValues currentValues) {
+        currentValues.setDeValue(null);
+        currentValues.setWetArea(null);
+        currentValues.setForecastTemperature(null);
+        currentValues.setForecastHumidity(null);
+        currentValues.setForecastWindSpeed(null);
+        currentValues.setSensorTemperature(null);
+        currentValues.setSensorHumidity(null);
+        currentValues.setSolarRadiation(null);
+        currentValues.setIsRaining(null);
+        currentValues.setTewValue(null);
+        currentValues.setTawValue(null);
+        currentValues.setRewValue(null);
+        currentValues.setRawValue(null);
+        currentValues.setKeValue(null);
     }
 }

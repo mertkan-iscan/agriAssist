@@ -1,5 +1,6 @@
 package io.mertkaniscan.automation_engine.services.main_services;
 
+import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.SensorData;
 import io.mertkaniscan.automation_engine.repositories.SensorDataRepository;
 import org.springframework.stereotype.Service;
@@ -48,13 +49,13 @@ public class SensorDataService {
         return sensorDataRepository.findByFieldIdAndTypeAndTimestampAfter(fieldID, dataType, since);
     }
 
-    public List<SensorData> getSensorDataBetweenTimestamps(Timestamp startTime, Timestamp endTime, String dataType) {
-        return sensorDataRepository.findSensorDataBetweenTimestamps(startTime, endTime, dataType);
+    public List<SensorData> getSensorDataBetweenTimestamps(int fieldID, Timestamp startTime, Timestamp endTime, String dataType) {
+        return sensorDataRepository.findSensorDataBetweenTimestamps(fieldID, startTime, endTime, dataType);
     }
 
-    public Double getMeanValueBetweenTimestamps(Timestamp startTime, Timestamp endTime, String dataType) {
+    public Double getMeanValueBetweenTimestamps(int fieldID, String dataType, Timestamp startTime, Timestamp endTime) {
 
-        List<SensorData> sensorDataList = getSensorDataBetweenTimestamps(startTime, endTime, dataType);
+        List<SensorData> sensorDataList = getSensorDataBetweenTimestamps(fieldID, startTime, endTime, dataType);
 
         if (sensorDataList == null || sensorDataList.isEmpty()) {
             return null;
