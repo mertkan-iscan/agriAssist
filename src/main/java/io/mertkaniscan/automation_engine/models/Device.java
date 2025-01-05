@@ -93,7 +93,7 @@ public class Device {
         this.deviceModel = deviceModel;
         this.deviceIp = deviceIp;
         this.deviceType = deviceType;
-        setDefaultCalibrationPolynomial();
+        if(deviceType.equalsIgnoreCase("sensor")){setDefaultCalibrationPolynomial();}
     }
 
     @PrePersist

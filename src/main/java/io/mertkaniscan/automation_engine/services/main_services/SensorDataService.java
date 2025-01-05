@@ -53,6 +53,7 @@ public class SensorDataService {
         return sensorDataRepository.findSensorDataBetweenTimestamps(fieldID, startTime, endTime, dataType);
     }
 
+    @Transactional
     public Double getMeanValueBetweenTimestamps(int fieldID, String dataType, Timestamp startTime, Timestamp endTime) {
 
         List<SensorData> sensorDataList = getSensorDataBetweenTimestamps(fieldID, startTime, endTime, dataType);

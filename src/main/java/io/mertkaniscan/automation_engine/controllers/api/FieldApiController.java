@@ -8,6 +8,7 @@ import io.mertkaniscan.automation_engine.services.forecast_services.solar_foreca
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import io.mertkaniscan.automation_engine.services.main_services.PlantService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -86,24 +87,31 @@ public class FieldApiController {
     }
 
     @PostMapping("/{fieldID}/add-plant")
-    public ResponseEntity<?> addPlantToField(@PathVariable int fieldID, @RequestBody Plant plant) {
+    public ResponseEntity<?> addPlantToField(@PathVariable int fieldID, @RequestBody @Valid Plant plant) {
 
+        // Fetch the field by ID
         Field field = fieldService.getFieldById(fieldID);
 
+        // Check if the field exists
         if (field == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Field not found.");
         }
 
+        // Check if a plant is already assigned to the field
         if (field.getPlantInField() != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("A plant is already assigned to this field.");
         }
 
+        // Set bidirectional relationship
+        plant.setField(field);
+        field.setPlantInField(plant);
+
+        // Save the plant, which cascades and persists the field if configured
         Plant savedPlant = plantService.savePlant(plant);
 
-        fieldService.updateFieldWithPlant(field.getFieldID(), savedPlant);
-
+        // Return the saved plant in the response
         return ResponseEntity.status(HttpStatus.CREATED).body(savedPlant);
     }
 

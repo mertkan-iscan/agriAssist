@@ -10,6 +10,7 @@ import io.mertkaniscan.automation_engine.services.forecast_services.solar_foreca
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
 import io.mertkaniscan.automation_engine.services.main_services.SensorDataService;
+import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,7 +37,10 @@ public class DailyTaskService {
     public DailyTaskService(FieldRepository fieldRepository,
                             DayRepository dayRepository,
                             WeatherForecastService weatherForecastService,
-                            CalculatorService calculatorService, EToCalculatorService eToCalculatorService, FieldService fieldService, SensorDataService sensorDataService) {
+                            CalculatorService calculatorService,
+                            EToCalculatorService eToCalculatorService,
+                            FieldService fieldService,
+                            SensorDataService sensorDataService) {
         this.fieldRepository = fieldRepository;
         this.dayRepository = dayRepository;
         this.weatherForecastService = weatherForecastService;
@@ -49,10 +54,8 @@ public class DailyTaskService {
     public void createDailyRecords() {
         log.info("Starting daily record creation task.");
         List<Field> fields = fieldRepository.findAll();
-        log.debug("Fetched {} fields from database.", fields.size());
 
         for (Field field : fields) {
-            log.debug("Processing field: {}", field.getFieldName());
             try {
                 processField(field);
             } catch (Exception e) {
@@ -70,24 +73,18 @@ public class DailyTaskService {
         }
 
         try {
-            processDailyRecord(field, plant);
+            Timestamp currentDate = Timestamp.valueOf(LocalDate.now().atStartOfDay());
+            Day existingDay = dayRepository.findByPlant_PlantIDAndDate(plant.getPlantID(), currentDate);
+
+            if (existingDay == null) {
+                log.info("No Day record found. Creating a new record for plantID={} and date={}.", plant.getPlantID(), currentDate);
+                createNewDayRecord(field, plant, currentDate);
+            } else {
+                log.info("Day record found for plantID={} and date={}. Updating record.", plant.getPlantID(), currentDate);
+                updateExistingDayRecord(field, existingDay);
+            }
         } catch (Exception e) {
-            log.error("Error creating daily record for field '{}': {}", field.getFieldName(), e.getMessage(), e);
-        }
-    }
-
-    private void processDailyRecord(Field field, Plant plant) {
-        Timestamp currentDate = Timestamp.valueOf(LocalDate.now().atStartOfDay());
-        log.debug("Checking existing Day record for plantID={} and date={}.", plant.getPlantID(), currentDate);
-
-        Day existingDay = dayRepository.findByPlant_PlantIDAndDate(plant.getPlantID(), currentDate);
-
-        if (existingDay == null) {
-            log.info("No Day record found. Creating new record for plantID={} and date={}.", plant.getPlantID(), currentDate);
-            createNewDayRecord(field, plant, currentDate);
-        } else {
-            log.info("Day record found for plantID={} and date={}. Updating record.", plant.getPlantID(), currentDate);
-            updateExistingDayRecord(field, existingDay, plant);
+            log.error("Error processing field '{}': {}", field.getFieldName(), e.getMessage(), e);
         }
     }
 
@@ -96,286 +93,125 @@ public class DailyTaskService {
             WeatherResponse weatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
             SolarResponse solarResponse = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
 
-            Day day = setStaticDayVariables(weatherResponse, solarResponse, field, plant, currentDate);
-
+            Day newDay = initializeDay(plant, currentDate, weatherResponse, solarResponse);
             int currentHourIndex = LocalDateTime.now().getHour();
 
             for (int hourIndex = 0; hourIndex < 24; hourIndex++) {
-
-                Hour newHour = new Hour(hourIndex, day);
-                day.getHours().add(newHour);
+                Hour newHour = new Hour(hourIndex, newDay);
+                newDay.getHours().add(newHour);
 
                 if (hourIndex <= currentHourIndex) {
-                    updatePastHourData(newHour, field, hourIndex, day);
-                }
-                else {
-                    updateFutureHourData(newHour, field, hourIndex, day);
+                    updatePastHourData(newHour, field, hourIndex, newDay);
+                } else {
+                    updateFutureHourData(newHour, field, hourIndex, newDay);
                 }
             }
 
-            dayRepository.save(day);
+            calculateWaterVariables(newDay, field);
+            dayRepository.save(newDay);
 
-            log.info("Successfully created new Day record with 24 Hour entries for plantID={} on date={}.",
-                    plant.getPlantID(), currentDate);
+            log.info("Successfully created Day record with 24 Hour entries for plantID={} on date={}.", plant.getPlantID(), currentDate);
         } catch (Exception e) {
-            log.error("Error creating daily record for field '{}': {}", field.getFieldName(), e.getMessage(), e);
-            throw e; // Re-throw to handle it further up if needed
+            log.error("Error creating Day record for field '{}': {}", field.getFieldName(), e.getMessage(), e);
         }
     }
 
-    private Day setStaticDayVariables(WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, Plant plant, Timestamp currentDate) {
-        try {
+    private Day initializeDay(Plant plant, Timestamp currentDate, WeatherResponse weatherResponse, SolarResponse solarResponse) {
+        Day newDay = new Day();
+        newDay.setPlant(plant);
+        newDay.setDate(currentDate);
 
-            long sunriseEpoch = weatherResponse.getCurrent().getSunrise();
-            long sunsetEpoch = weatherResponse.getCurrent().getSunset();
-            Timestamp sunrise = new Timestamp(sunriseEpoch * 1000L);
-            Timestamp sunset = new Timestamp(sunsetEpoch * 1000L);
+        newDay.setSunrise(new Timestamp(weatherResponse.getCurrent().getSunrise() * 1000L));
+        newDay.setSunset(new Timestamp(weatherResponse.getCurrent().getSunset() * 1000L));
+        newDay.setWeatherResponse(weatherResponse);
+        newDay.setSolarResponse(solarResponse);
 
-            Double TAW = calculatorService.calculateSensorTAW(field, 10);
-            Double TEW = calculatorService.calculateSensorTEW(field, 10);
-            Double RAW = calculatorService.calculateSensorRAW(TAW, field);
-            Double REW = calculatorService.calculateSensorREW(TEW, field);
+        Double guessedEto = eToCalculatorService.calculateEToDaily(weatherResponse, solarResponse, plant.getField());
+        newDay.setGuessedEtoDaily(guessedEto);
 
-            Double Kr = calculatorService.calculateSensorKr(field);
-
-            // Create new Day entity
-            Day day = new Day();
-            day.setPlant(plant);
-            day.setDate(currentDate);
-
-            day.setSunrise(sunrise);
-            day.setSunset(sunset);
-
-            day.setWeatherResponse(weatherResponse);
-            day.setSolarResponse(solarResponse);
-
-            day.setTAWValueDaily(TAW);
-            day.setTEWValueDaily(TEW);
-            day.setRAWValueDaily(RAW);
-            day.setREWValueDaily(REW);
-
-            Double guessedEto = eToCalculatorService.calculateEToDaily(weatherResponse, solarResponse, field);
-            day.setGuessedEtoDaily(guessedEto);
-
-            return day;
-
-        } catch (Exception e) {
-            log.error("Error in setStaticDayVariables: {}", e.getMessage(), e);
-            throw e;
-        }
+        return newDay;
     }
 
-
-    private void updateExistingDayRecord(Field field, Day day, Plant plant) {
-        log.debug("Updating Day record for plantID={} on date={}.", plant.getPlantID(), day.getDate());
-
+    private void updateExistingDayRecord(Field field, Day day) {
         int currentHourIndex = LocalDateTime.now().getHour();
 
-
         for (int hourIndex = 0; hourIndex < 24; hourIndex++) {
-
             int finalHourIndex = hourIndex;
-            Optional<Hour> existingHourOpt = day.getHours().stream()
+            Optional<Hour> existingHour = day.getHours().stream()
                     .filter(hour -> hour.getHourIndex() == finalHourIndex)
                     .findFirst();
 
-            if (existingHourOpt.isEmpty()) {
-
+            if (existingHour.isEmpty()) {
                 Hour newHour = new Hour(hourIndex, day);
                 day.getHours().add(newHour);
-
                 if (hourIndex <= currentHourIndex) {
-
                     updatePastHourData(newHour, field, hourIndex, day);
                 } else {
                     updateFutureHourData(newHour, field, hourIndex, day);
                 }
-
-                log.info("Created missing hour record for hourIndex={} in Day ID={}.", hourIndex, day.getDayID());
-
             } else {
-                Hour existingHour = existingHourOpt.get();
-
+                Hour hour = existingHour.get();
                 if (hourIndex <= currentHourIndex) {
-
-                    updatePastHourData(existingHour, field, hourIndex, day);
+                    updatePastHourData(hour, field, hourIndex, day);
                 } else {
-                    updateFutureHourData(existingHour, field, hourIndex, day);
+                    updateFutureHourData(hour, field, hourIndex, day);
                 }
             }
         }
-
         dayRepository.save(day);
-        log.info("Day record updated with missing and outdated hours for plantID={} on date={}.",
-                plant.getPlantID(), day.getDate());
     }
-
 
     private void updatePastHourData(Hour hour, Field field, int hourIndex, Day day) {
         try {
-            LocalDate currentDate = LocalDate.now();
-            Timestamp startOfHour = Timestamp.valueOf(currentDate.atTime(hourIndex, 0));
-            Timestamp endOfHour = Timestamp.valueOf(currentDate.atTime(hourIndex, 59, 59));
+            Timestamp startOfHour = Timestamp.valueOf(LocalDate.now().atTime(hourIndex, 0));
+            Timestamp endOfHour = Timestamp.valueOf(LocalDate.now().atTime(hourIndex, 59, 59));
 
-            WeatherResponse freshWeatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
-            SolarResponse freshSolarResponse = fieldService.getSolarDataByFieldId(field.getFieldID(), currentDate);
+            WeatherResponse weather = fieldService.getWeatherDataByFieldId(field.getFieldID());
+            SolarResponse solar = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
 
-
-            Double meanTemperature = sensorDataService.getMeanValueBetweenTimestamps(
-                    field.getFieldID(), "weather_temp", startOfHour, endOfHour);
-
-            Double meanHumidity = sensorDataService.getMeanValueBetweenTimestamps(
-                    field.getFieldID(), "weather_hum", startOfHour, endOfHour);
+            // Fetch sensor data
+            Double meanTemperature = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_temp", startOfHour, endOfHour);
+            Double meanHumidity = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_hum", startOfHour, endOfHour);
 
             if (meanTemperature != null && meanHumidity != null) {
-                double sensorETo = eToCalculatorService.calculateSensorEToHourly(
-                        meanTemperature,
-                        meanHumidity,
-                        freshWeatherResponse,
-                        freshSolarResponse,
-                        field,
-                        hourIndex
-                );
-
-                hour.setSensorEToHourly(sensorETo);
                 hour.setSensorTemperature(meanTemperature);
                 hour.setSensorHumidity(meanHumidity);
-                hour.setLastUpdated(LocalDateTime.now());
 
-
-
-                Double TAW = calculatorService.calculateSensorTAW(field, startOfHour, endOfHour);
-                Double TEW = calculatorService.calculateSensorTEW(field, startOfHour, endOfHour);
-                Double RAW = calculatorService.calculateSensorRAW(TAW, field);
-                Double REW = calculatorService.calculateSensorREW(TEW, field);
-                Double Kr = calculatorService.calculateSensorKr(field);
-
-
-
-                hour.setTAWValueHourly(TAW);
-                hour.setTEWValueHourly(TEW);
-
-                hour.setRAWValueHourly(RAW);
-                hour.setREWValueHourly(REW);
-
-                hour.setKrValue(Kr);
-
-
+                double eto = eToCalculatorService.calculateSensorEToHourly(meanTemperature, meanHumidity, weather, solar, field, hourIndex);
+                hour.setSensorEToHourly(eto);
             } else {
-                log.warn("Insufficient sensor data for ETo calculation at hourIndex={} in Day ID={}",
-                        hourIndex, day.getDayID());
+                log.warn("Sensor data is missing for hourIndex={} in Day ID={}. Skipping sensor-based calculations.", hourIndex, day.getDayID());
             }
 
-            // 2) Populate forecast-related fields
-            populateForecastData(hour, field, hourIndex, day, freshWeatherResponse, freshSolarResponse);
-
+            hour.setLastUpdated(LocalDateTime.now());
         } catch (Exception e) {
-            log.error("Error updating hour data for hourIndex={} in Day ID={}: {}",
-                    hourIndex, day.getDayID(), e.getMessage(), e);
+            log.error("Error updating past hour data for hourIndex={} in Day ID={}: {}", hourIndex, day.getDayID(), e.getMessage(), e);
         }
     }
-
 
     private void updateFutureHourData(Hour hour, Field field, int hourIndex, Day day) {
         try {
-            LocalDate currentDate = LocalDate.now();
-
-            WeatherResponse freshWeatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
-            SolarResponse freshSolarResponse = fieldService.getSolarDataByFieldId(field.getFieldID(), currentDate);
-
-            populateForecastData(hour, field, hourIndex, day, freshWeatherResponse, freshSolarResponse);
-
+            WeatherResponse weather = fieldService.getWeatherDataByFieldId(field.getFieldID());
+            SolarResponse solar = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
+            hour.setForecastEToHourly(eToCalculatorService.calculateForecastEToHourly(weather, solar, field, hourIndex));
         } catch (Exception e) {
-            log.error("Error updating hour data for hourIndex={} in Day ID={}: {}",
-                    hourIndex, day.getDayID(), e.getMessage(), e);
+            log.error("Error updating future hour data for hourIndex={} in Day ID={}: {}", hourIndex, day.getDayID(), e.getMessage(), e);
         }
     }
 
-
-    private void populateForecastData(
-            Hour hour,
-            Field field,
-            int hourIndex,
-            Day day,
-            WeatherResponse weatherResponse,
-            SolarResponse solarResponse
-    ) {
+    private void calculateWaterVariables(Day day, Field field) {
         try {
-            Double forecastTemp = weatherResponse.getHourly().get(hourIndex).getTemp();
-            Double forecastRH = weatherResponse.getHourly().get(hourIndex).getHumidity().doubleValue();
-            Double windSpeed = weatherResponse.getHourly().get(hourIndex).getWindSpeed();
-            double forecastPrecipitation = calculateForecastPrecipitation(weatherResponse, hourIndex);
+            Double TAW = calculatorService.calculateSensorTAW(field, 10);
+            Double TEW = calculatorService.calculateSensorTEW(field, 10);
+            Double RAW = calculatorService.calculateSensorRAW(TAW != null ? TAW : 0.0, field);
+            Double REW = calculatorService.calculateSensorREW(TEW != null ? TEW : 0.0, field);
 
-            double solarRadiation = eToCalculatorService.calculateSolarRadiationHourly(
-                    weatherResponse, solarResponse, hourIndex
-            );
-
-            double forecastETo = eToCalculatorService.calculateForecastEToHourly(
-                    weatherResponse, solarResponse, field, hourIndex
-            );
-
-            hour.setForecastEToHourly(forecastETo);
-            hour.setForecastTemperature(forecastTemp);
-            hour.setForecastHumidity(forecastRH);
-            hour.setForecastWindSpeed(windSpeed);
-            hour.setForecastPrecipitation(forecastPrecipitation);
-            hour.setSolarRadiation(solarRadiation);
-
+            day.setTAWValueDaily(TAW != null ? TAW : 0.0);
+            day.setTEWValueDaily(TEW != null ? TEW : 0.0);
+            day.setRAWValueDaily(RAW != null ? RAW : 0.0);
+            day.setREWValueDaily(REW != null ? REW : 0.0);
         } catch (Exception e) {
-            log.error("Error populating forecast data for hourIndex={} in Day ID={}: {}",
-                    hourIndex, day.getDayID(), e.getMessage(), e);
+            log.error("Error calculating water variables for Day ID={}: {}", day.getDayID(), e.getMessage(), e);
         }
-    }
-
-    private double calculateForecastPrecipitation(WeatherResponse freshWeatherResponse, int hourIndex) {
-        WeatherResponse.Hourly hourlyData = freshWeatherResponse.getHourly().get(hourIndex);
-        double pop = hourlyData.getPop();
-        WeatherResponse.Rain rain = hourlyData.getRain();
-        return (pop >= 0.3 && rain != null && rain.getOneHour() != null) ? rain.getOneHour() : 0.0;
-    }
-
-    private void isIrrigationRequiredToday() {
-        //get RAW
-        //if RAW < dailyWaterDepletition
-            //calculate how many hours plants can survive
-            //if there is rain in these hours
-                //get rain amount
-                //if + rain -etc(hours)
-            //else no rain
-
-
-
-        //get currentRaw
-        //calculate each hour guessedRAW (RAW - plantWaterUsage(KcbAdjusted x ETo) + rain)
-        //loop todays hours
-            //if guessedRAW < 0
-                //if its nighttime
-                    //do every hour until sunrise
-                        //calculate Ks (soilMoisture / TAW - RAW) until sunrise
-                            //if Ks >= 0.7
-                                //skip hour
-                            //else Ks < 0.7
-                                //irrigate
-
-                                    //set irrigation water amount =
-
-                //calculate plantWaterUsage + evaporationWaterLoss for remaining hours
-                    // Ks = soilMoisture / TAW - RAW
-            //if guessedRAW < 0 didn t happened in todays hours
-                //return no irrigation
-
-
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-

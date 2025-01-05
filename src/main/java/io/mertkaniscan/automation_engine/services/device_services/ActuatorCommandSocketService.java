@@ -1,8 +1,7 @@
 package io.mertkaniscan.automation_engine.services.device_services;
 
 import io.mertkaniscan.automation_engine.utils.config_loader.DeviceCommandConfigLoader;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -20,10 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
+@Slf4j
 @Service
 public class ActuatorCommandSocketService {
 
-    private static final Logger logger = LogManager.getLogger(ActuatorCommandSocketService.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final DeviceService deviceService;
@@ -45,12 +44,12 @@ public class ActuatorCommandSocketService {
             throw new Exception("Device with ID " + deviceID + " is not an actuator device.");
         }
 
-        logger.info("Locking device with ID: {}", device.getDeviceID());
+        log.info("Locking device with ID: {}", device.getDeviceID());
         device.lock();
         try {
             return communicateWithActuator(device, degree);
         } finally {
-            logger.info("Unlocking device with ID: {}", device.getDeviceID());
+            log.info("Unlocking device with ID: {}", device.getDeviceID());
             device.unlock();
         }
     }
@@ -86,7 +85,7 @@ public class ActuatorCommandSocketService {
                 return responseJson;
 
             } catch (Exception e) {
-                logger.error("Error communicating with actuator ID {}: {}", device.getDeviceID(), e.getMessage());
+                log.error("Error communicating with actuator ID {}: {}", device.getDeviceID(), e.getMessage());
                 throw new Exception("Error communicating with actuator ID " + device.getDeviceID() + ": " + e.getMessage());
             }
         };
@@ -114,12 +113,12 @@ public class ActuatorCommandSocketService {
 
             Integer degree = getCalibrationValue(flowRate, actuator);
 
-            logger.info("Locking actuator with ID: {} for opening", actuator.getDeviceID());
+            log.info("Locking actuator with ID: {} for opening", actuator.getDeviceID());
             actuator.lock();
             try {
                 sendActuatorCommand(actuator.getDeviceID(), degree);
             } finally {
-                logger.info("Unlocking actuator with ID: {} after opening", actuator.getDeviceID());
+                log.info("Unlocking actuator with ID: {} after opening", actuator.getDeviceID());
                 actuator.unlock();
             }
         }
@@ -152,16 +151,13 @@ public class ActuatorCommandSocketService {
         }
 
         for (Device actuator : actuators) {
-            logger.info("Locking actuator with ID: {} for closing", actuator.getDeviceID());
-            actuator.lock();
+            log.info("Locking actuator with ID: {} for closing", actuator.getDeviceID());
             try {
                 sendActuatorCommand(actuator.getDeviceID(), 0); // Close the valve
-                logger.info("Irrigation stopped for actuator ID: {}", actuator.getDeviceID());
+                log.info("Irrigation stopped for actuator ID: {}", actuator.getDeviceID());
             } catch (Exception e) {
-                logger.error("Error stopping irrigation for actuator ID {}: {}", actuator.getDeviceID(), e.getMessage());
+                log.error("Error stopping irrigation for actuator ID {}: {}", actuator.getDeviceID(), e.getMessage());
                 throw new Exception("Failed to stop irrigation for actuator ID: " + actuator.getDeviceID());
-            } finally {
-                actuator.unlock();
             }
         }
     }

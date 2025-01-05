@@ -5,11 +5,12 @@ import io.mertkaniscan.automation_engine.models.IrrigationRequest;
 import io.mertkaniscan.automation_engine.repositories.IrrigationRepository;
 import io.mertkaniscan.automation_engine.services.irrigation_services.IrrigationService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+@Slf4j
 @RestController
 @RequestMapping("/api/irrigation")
 public class IrrigationApiController {

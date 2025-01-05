@@ -43,9 +43,9 @@ public class UpdateFieldCurrentTaskService {
     }
 
     public void updateFieldCurrentValues() {
-        log.info("Starting hourly record update task.");
+        log.info("Starting field current record update task.");
         fieldRepository.findAll().forEach(this::updateFieldHourlyRecords);
-        log.info("Hourly record update task completed.");
+        log.info("field current record update task completed.");
     }
 
     @Transactional
@@ -60,7 +60,7 @@ public class UpdateFieldCurrentTaskService {
             updateFieldCurrentValues(field);
 
         } catch (Exception e) {
-            log.error("Error updating hourly records for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
+            log.error("Error updating field current records for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
         }
     }
 

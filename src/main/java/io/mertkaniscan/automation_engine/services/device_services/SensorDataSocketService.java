@@ -9,7 +9,8 @@ import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.utils.SensorReadingConverter;
 import io.mertkaniscan.automation_engine.utils.config_loader.DeviceCommandConfigLoader;
-import org.springframework.beans.factory.annotation.Value;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -20,13 +21,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
+@Slf4j
 @Service
 public class SensorDataSocketService {
 
-    private static final Logger logger = LogManager.getLogger(SensorDataSocketService.class);
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final DeviceService deviceService;
@@ -52,12 +51,12 @@ public class SensorDataSocketService {
             throw new Exception("Device with ID " + deviceID + " is not a sensor device.");
         }
 
-        logger.info("Locking device with ID: {}", device.getDeviceID());
+        log.info("Locking device with ID: {}", device.getDeviceID());
         device.lock();
         try {
             return communicateWithDevice(device, parser);
         } finally {
-            logger.info("Unlocking device with ID: {}", device.getDeviceID());
+            log.info("Unlocking device with ID: {}", device.getDeviceID());
             device.unlock();
         }
     }
@@ -142,7 +141,7 @@ public class SensorDataSocketService {
             String sensorDataGroup = sensorConfigService.getGroupForSensorTypeAndCommand(sensorModel, command);
 
             if (expectedDataTypes == null || sensorDataGroup == null) {
-                logger.warn("No configuration found for sensor type: {} and command: {}", sensorModel, command);
+                log.warn("No configuration found for sensor type: {} and command: {}", sensorModel, command);
                 return sensorDataList;
             }
 
@@ -161,7 +160,7 @@ public class SensorDataSocketService {
                     if (jsonElement.isJsonPrimitive() && jsonElement.getAsJsonPrimitive().isNumber()) {
                         dataValue = jsonElement.getAsDouble();
                     } else {
-                        logger.warn("Data value for '{}' is not a valid number. Device ID: {}", expectedDataType, device.getDeviceID());
+                        log.warn("Data value for '{}' is not a valid number. Device ID: {}", expectedDataType, device.getDeviceID());
                         continue;
                     }
 
@@ -170,21 +169,21 @@ public class SensorDataSocketService {
 
                         double convertedValue = SensorReadingConverter.convertSoilMoistureReading((int)dataValue, device.getCalibrationPolynomial());
 
-                        logger.info("converted soil moisture value: {}", convertedValue);
+                        log.info("converted soil moisture value: {}", convertedValue);
                         sensorData.getDataValues().put(expectedDataType, convertedValue);
 
                     } else if ("weather".equalsIgnoreCase(sensorDataGroup)) {
                         if(dataValue == -1){
-                                logger.error("Invalid data value '-1' for '{}' from device ID: {}", expectedDataType, device.getDeviceID());
+                                log.error("Invalid data value '-1' for '{}' from device ID: {}", expectedDataType, device.getDeviceID());
                                 throw new Exception("Invalid sensor data value '-1' received for data type: " + expectedDataType);
                         }
                         sensorData.getDataValues().put(expectedDataType, dataValue);
                     } else {
-                        logger.info("no match for sensor data type: {}", expectedDataType);
+                        log.info("no match for sensor data type: {}", expectedDataType);
                         sensorData.getDataValues().put(expectedDataType, dataValue);
                     }
                 } else {
-                    logger.warn("Expected data type '{}' not found in sensor data from device ID {}.", expectedDataType, device.getDeviceID());
+                    log.warn("Expected data type '{}' not found in sensor data from device ID {}.", expectedDataType, device.getDeviceID());
                 }
             }
 
@@ -211,7 +210,7 @@ public class SensorDataSocketService {
             List<String> expectedDataTypes = sensorConfigService.getExpectedDataTypesForSensorTypeAndCommand(sensorModel, command);
 
             if (expectedDataTypes == null) {
-                logger.warn("No configuration found for sensor type: {} and command: {}", sensorModel, command);
+                log.warn("No configuration found for sensor type: {} and command: {}", sensorModel, command);
                 return sensorDataList;
             }
 
@@ -223,14 +222,14 @@ public class SensorDataSocketService {
                     if (jsonElement.isJsonPrimitive() && jsonElement.getAsJsonPrimitive().isNumber()) {
                         dataValue = jsonElement.getAsDouble();
                     } else {
-                        logger.warn("Data value for '{}' is not a valid number. Device ID: {}", expectedDataType, device.getDeviceID());
+                        log.warn("Data value for '{}' is not a valid number. Device ID: {}", expectedDataType, device.getDeviceID());
                         continue;
                     }
 
                     T sensorData = factory.create(expectedDataType, dataValue);
                     sensorDataList.add(sensorData);
                 } else {
-                    logger.warn("Expected data type '{}' not found in sensor data from device ID {}.", expectedDataType, device.getDeviceID());
+                    log.warn("Expected data type '{}' not found in sensor data from device ID {}.", expectedDataType, device.getDeviceID());
                 }
             }
 

@@ -1,6 +1,7 @@
 package io.mertkaniscan.automation_engine.services;
 
 import io.mertkaniscan.automation_engine.models.Field;
+import io.mertkaniscan.automation_engine.models.Hour;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import io.mertkaniscan.automation_engine.services.main_services.SensorDataService;
 import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
@@ -61,21 +62,31 @@ public class CalculatorService {
         log.info("Calculating Kr for field: {}", field.getFieldID());
 
         double evaporationCoeff = field.getEvaporationCoeff();
-        double fieldCurrentDeValue = field.getCurrentValues().getDeValue();
+        double fieldWiltingPoint = field.getWiltingPoint();
+        double fieldCapacity = field.getFieldCapacity();
 
         Double sensorTEWValue = field.getCurrentValues().getTewValue();
+        double soilMoisture = (sensorTEWValue * 100) / (field.getMaxEvaporationDepth() * 1000);
         double sensorREWValue = sensorTEWValue * evaporationCoeff;
 
-        double result;
-        if (fieldCurrentDeValue >= sensorTEWValue) {
-            result = 0.0;
-        } else if (fieldCurrentDeValue <= sensorREWValue) {
-            result = 1.0;
-        } else {
-            result = (sensorTEWValue - fieldCurrentDeValue) / (sensorTEWValue - sensorREWValue);
-        }
-
+        double result = Calculators.calculateSensorKr(sensorREWValue, soilMoisture, fieldCapacity, fieldWiltingPoint);
         log.info("Kr calculated: {}", result);
+
+        return result;
+    }
+
+    public double calculateSensorKr(Field field, double sensorTEWValue, double sensorREWValue) {
+        log.info("Calculating Kr for field: {}", field.getFieldID());
+
+        double evaporationCoeff = field.getEvaporationCoeff();
+        double fieldWiltingPoint = field.getWiltingPoint();
+        double fieldCapacity = field.getFieldCapacity();
+
+        double soilMoisture = (sensorTEWValue * 100) / (field.getMaxEvaporationDepth() * 1000);
+
+        double result = Calculators.calculateSensorKr(sensorREWValue, soilMoisture, fieldCapacity, fieldWiltingPoint);
+        log.info("Kr calculated: {}", result);
+
         return result;
     }
 

@@ -1,5 +1,7 @@
 package io.mertkaniscan.automation_engine.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +18,7 @@ public class FieldCurrentValues {
 
     @OneToOne
     @JoinColumn(name = "fieldid", nullable = false)
+    @JsonBackReference("field-current")
     private Field field;
 
     private Double keValue;

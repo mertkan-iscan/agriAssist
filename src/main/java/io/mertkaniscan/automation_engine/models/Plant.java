@@ -1,5 +1,6 @@
 package io.mertkaniscan.automation_engine.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -20,8 +21,10 @@ public class Plant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int plantID;
 
-    @Column(nullable = false)
-    private int fieldID;
+    @OneToOne
+    @JoinColumn(name = "fieldid", referencedColumnName = "fieldID", nullable = false, unique = true)
+    @JsonBackReference("field-plant")
+    private Field field;
 
     @Column(nullable = false)
     private String plantType;
@@ -52,7 +55,7 @@ public class Plant {
     }
 
     public Plant(int plantID, String plantType, Timestamp plantSowDate, String plantStage,
-                 Double currentRootZoneDepth, Double allowableDepletion, Double currentKcValue, int fieldID) {
+                 Double currentRootZoneDepth, Double allowableDepletion, Double currentKcValue, Field field) {
 
         this.plantID = plantID;
         this.plantType = plantType;
@@ -61,7 +64,7 @@ public class Plant {
         this.currentRootZoneDepth = currentRootZoneDepth;
         this.allowableDepletion = allowableDepletion;
         this.currentKcValue = currentKcValue;
-        this.fieldID = fieldID;
+        this.field = field;
     }
 
     public Day getToday() {

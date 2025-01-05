@@ -17,6 +17,7 @@ import java.util.Set;
 public class Field {
 
     @OneToOne(mappedBy = "field", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("field-current")
     private FieldCurrentValues currentValues;
 
     public enum FieldType {
@@ -69,9 +70,8 @@ public class Field {
     @Column(nullable = false)
     private Double maxEvaporationDepth;
 
-    // relations
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "plant_id", referencedColumnName = "plantID")
+    @OneToOne(mappedBy = "field", cascade = CascadeType.ALL)
+    @JsonManagedReference("field-plant")
     private Plant plantInField;
 
     @Enumerated(EnumType.STRING)

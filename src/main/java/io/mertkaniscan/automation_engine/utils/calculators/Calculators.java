@@ -17,7 +17,11 @@ public class Calculators {
         return saturationVaporPressure - actualVaporPressure;
     }
 
-    public static double calculateKe(double Kr, double fw, double KcMax, double Kcb) {
+    public static double calculateKe(double Kr,
+                                     double fw,
+                                     double KcMax,
+                                     double Kcb) {
+
         return Kr * (KcMax - Kcb) * fw;
     }
 
@@ -28,6 +32,15 @@ public class Calculators {
             return 1.0;
         } else {
             return (TEW - evaporationDeficit) / (TEW - REW);
+        }
+    }
+
+    public static double calculateSensorKr(double currentREW, double soilMoistPercent, double fieldCapacity, double wiltingPoint) {
+        if (currentREW > 0) {
+            return 1.0; // Kr is 1 if REW > 0
+        } else {
+
+            return soilMoistPercent / (fieldCapacity - wiltingPoint);
         }
     }
 
@@ -73,23 +86,24 @@ public class Calculators {
     }
 
     public static double calculateTEW(double FieldCapacity, double WiltingPoint, double Ze) {
-        return (FieldCapacity - WiltingPoint) * Ze;
+        return (FieldCapacity - WiltingPoint) * Ze * 1000;
     }
 
-    public static double calculateSensorTEW(double soilWaterPercentage, double wiltingPoint, double maxEvaporationDepth) {
-        return Math.max(0, (soilWaterPercentage - wiltingPoint) * maxEvaporationDepth);
+    public static double calculateSensorTEW(double SensorMoisture, double wiltingPoint, double maxEvaporationDepth) {
+        return Math.max(0, ((SensorMoisture / 100) - (0.5 * wiltingPoint)) * maxEvaporationDepth * 1000);
     }
 
     public static double calculateSensorREW(double TEW, double evaporationCoeff) {
         return TEW * evaporationCoeff;
     }
 
-    public static double calculateTAW(double SoilMoisture, double WiltingPoint, double RZD) {
-        return (SoilMoisture - WiltingPoint) * RZD;
+    public static double calculateTAW(double FieldCapacity, double WiltingPoint, double RZD) {
+        return (FieldCapacity - WiltingPoint) * RZD * 1000;
     }
 
     public static double calculateSensorTAW(double SensorMoisture, double WiltingPoint, double RZD) {
-        return (SensorMoisture - WiltingPoint) * RZD;
+        System.out.println("RZD: " + RZD);
+        return ((SensorMoisture / 100) - WiltingPoint) * RZD * 1000;
     }
 
     public static double calculateSensorRAW(double TAW, double allowableDepletion) {

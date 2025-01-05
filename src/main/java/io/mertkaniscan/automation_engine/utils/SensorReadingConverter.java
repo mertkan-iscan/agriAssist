@@ -1,14 +1,11 @@
 package io.mertkaniscan.automation_engine.utils;
 
-import io.mertkaniscan.automation_engine.components.ScheduledSensorDataFetcher;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
+@Slf4j
 public class SensorReadingConverter {
-
-    private static final Logger logger = LogManager.getLogger(SensorReadingConverter.class);
 
     /**
      * Converts a soil moisture raw reading to a percentage using a calibration polynomial.

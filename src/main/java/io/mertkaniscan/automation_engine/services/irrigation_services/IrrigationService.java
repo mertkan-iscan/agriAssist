@@ -1,7 +1,16 @@
 package io.mertkaniscan.automation_engine.services.irrigation_services;
 
+
+import io.mertkaniscan.automation_engine.models.Day;
+import io.mertkaniscan.automation_engine.models.Hour;
+import io.mertkaniscan.automation_engine.models.Plant;
+import io.mertkaniscan.automation_engine.repositories.DayRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import io.mertkaniscan.automation_engine.models.Field;
 import io.mertkaniscan.automation_engine.models.IrrigationRequest;
+import io.mertkaniscan.automation_engine.models.Plant;
 import io.mertkaniscan.automation_engine.repositories.IrrigationRepository;
 import io.mertkaniscan.automation_engine.services.device_services.ActuatorCommandSocketService;
 import io.mertkaniscan.automation_engine.services.main_services.FieldService;
@@ -9,8 +18,10 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,13 +38,15 @@ public class IrrigationService {
     private final IrrigationRepository irrigationRepository;
     private final ActuatorCommandSocketService actuatorCommandSocketService;
     private final FieldService fieldService;
+    private final DayRepository dayRepository;
 
     public IrrigationService(IrrigationRepository irrigationRepository,
                              ActuatorCommandSocketService actuatorCommandSocketService,
-                             FieldService fieldService) {
+                             FieldService fieldService, DayRepository dayRepository) {
         this.irrigationRepository = irrigationRepository;
         this.actuatorCommandSocketService = actuatorCommandSocketService;
         this.fieldService = fieldService;
+        this.dayRepository = dayRepository;
     }
 
     @PostConstruct
@@ -109,12 +122,11 @@ public class IrrigationService {
     }
 
     public void processIrrigationRequest(IrrigationRequest request) {
-        // Validate irrigation parameters
+
         if (request.getIrrigationStartTime().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Irrigation start time must be in the future.");
         }
 
-        // Validate: Ensure exactly two non-null and positive values are provided
         int providedValues = 0;
         if (request.getFlowRate() != null && request.getFlowRate() > 0) providedValues++;
         if (request.getTotalWaterAmount() != null && request.getTotalWaterAmount() > 0) providedValues++;
@@ -124,22 +136,30 @@ public class IrrigationService {
             throw new IllegalArgumentException("Exactly two of flowRate, totalWaterAmount, or irrigationDuration must be provided.");
         }
 
-        // Check for overlapping irrigations
         if (hasOverlappingIrrigation(request)) {
             throw new IllegalStateException("An irrigation is already scheduled for this time period.");
         }
 
-        // Calculate missing value
+
+
         if (request.getFlowRate() != null && request.getTotalWaterAmount() != null) {
+
             double durationInHours = request.getTotalWaterAmount() / request.getFlowRate();
             request.setIrrigationDuration((int) Math.round(durationInHours * 60));
+
         } else if (request.getFlowRate() != null && request.getIrrigationDuration() != null) {
+
             double totalWaterAmount = request.getFlowRate() * (request.getIrrigationDuration() / 60.0);
             request.setTotalWaterAmount(totalWaterAmount);
+
         } else if (request.getTotalWaterAmount() != null && request.getIrrigationDuration() != null) {
+
             double flowRate = request.getTotalWaterAmount() / (request.getIrrigationDuration() / 60.0);
             request.setFlowRate(flowRate);
+
         }
+
+
 
         // Set end time and status
         LocalDateTime endTime = request.getIrrigationStartTime().plusMinutes(request.getIrrigationDuration());
@@ -152,24 +172,29 @@ public class IrrigationService {
 
     private void scheduleIrrigationTask(IrrigationRequest request) {
         LocalDateTime now = LocalDateTime.now();
+
         Duration startDelay = Duration.between(now, request.getIrrigationStartTime());
         Duration stopDelay = Duration.between(now, request.getIrrigationEndTime());
 
         List<ScheduledFuture<?>> tasks = new ArrayList<>();
 
         if (!startDelay.isNegative() && !startDelay.isZero()) {
+
             ScheduledFuture<?> startTask = taskScheduler.schedule(
                     () -> startIrrigation(request),
                     Instant.now().plusMillis(startDelay.toMillis())
             );
+
             tasks.add(startTask);
         }
 
         if (!stopDelay.isNegative() && !stopDelay.isZero()) {
+
             ScheduledFuture<?> stopTask = taskScheduler.schedule(
                     () -> stopIrrigation(request),
                     Instant.now().plusMillis(stopDelay.toMillis())
             );
+
             tasks.add(stopTask);
         }
 
@@ -180,10 +205,13 @@ public class IrrigationService {
         try {
             // Check if there's already an active irrigation for this field
             if (activeIrrigations.getOrDefault(request.getField().getFieldID(), false)) {
+
                 request.setStatus(IrrigationRequest.IrrigationStatus.FAILED);
                 irrigationRepository.save(request);
                 cancelScheduledTasks(request.getId());
+
                 System.err.println("Failed to start irrigation: Field " + request.getField().getFieldID() + " is already being irrigated");
+
                 return;
             }
 
@@ -193,6 +221,16 @@ public class IrrigationService {
             int fieldId = request.getField().getFieldID();
             actuatorCommandSocketService.startIrrigation(fieldId, request.getFlowRate());
             activeIrrigations.put(fieldId, true);
+
+            LocalDateTime irrigationStartTime = request.getIrrigationStartTime();
+            LocalDateTime irrigationEndTime = request.getIrrigationEndTime();
+
+            double irrigationWaterAmountLiter = request.getTotalWaterAmount();
+            double infiltrationRateCmH = request.getField().getInfiltrationRate();
+            double wetArea = irrigationWaterAmountLiter / (10 * infiltrationRateCmH);
+            Plant plant = request.getField().getPlantInField();
+
+            saveIrrigationforHour(plant, irrigationStartTime, irrigationEndTime, irrigationWaterAmountLiter, wetArea);
 
             System.out.println("Irrigation started for field ID: " + fieldId);
         } catch (Exception e) {
@@ -255,9 +293,37 @@ public class IrrigationService {
                 }
             }
 
+            // Cancel scheduled tasks
+            cancelScheduledTasks(requestId);
+
+            // Set request status to CANCELLED
             request.setStatus(IrrigationRequest.IrrigationStatus.CANCELLED);
             irrigationRepository.save(request);
-            cancelScheduledTasks(requestId);
+
+            // Remove remaining hourly records
+            removeRemainingHourlyRecords(request);
+        }
+    }
+
+    private void removeRemainingHourlyRecords(IrrigationRequest request) {
+        Field field = request.getField();
+        Plant plant = field.getPlantInField();
+        LocalDateTime irrigationEndTime = request.getIrrigationEndTime();
+
+        Day day = dayRepository.findByPlant_PlantIDAndDateWithHours(
+                plant.getPlantID(), Timestamp.valueOf(irrigationEndTime.toLocalDate().atStartOfDay())
+        );
+
+        if (day != null) {
+            for (Hour hour : day.getHours()) {
+                LocalDateTime hourStart = irrigationEndTime.toLocalDate().atStartOfDay().plusHours(hour.getHourIndex());
+                if (hourStart.isAfter(LocalDateTime.now())) {
+                    hour.setIrrigationAmount(null);
+                    hour.setIrrigationWetArea(null);
+                    hour.setLastUpdated(LocalDateTime.now());
+                }
+            }
+            dayRepository.save(day);
         }
     }
 
@@ -285,4 +351,58 @@ public class IrrigationService {
         // Process the updated request as a new request
         processIrrigationRequest(existingRequest);
     }
+
+
+    @Transactional
+    public void saveIrrigationforHour(Plant plant, LocalDateTime irrigationStartTime, LocalDateTime irrigationEndTime, double irrigationWaterAmountLiter, double wetAreaPerHour) {
+        // Get the Day record for the plant and date
+        Day day = dayRepository.findByPlant_PlantIDAndDateWithHours(plant.getPlantID(), Timestamp.valueOf(irrigationStartTime.toLocalDate().atStartOfDay()));
+
+        if (day == null) {
+            throw new IllegalArgumentException("Day record not found for the given plant and date.");
+        }
+
+        // Calculate total irrigation duration in minutes
+        long totalDurationMinutes = Duration.between(irrigationStartTime, irrigationEndTime).toMinutes();
+
+        double cumulativeWetArea = 0.0; // To accumulate wet area over hours
+
+        // Find all intersecting hours
+        for (Hour hour : day.getHours()) {
+            LocalDateTime hourStart = irrigationStartTime.toLocalDate().atStartOfDay().plusHours(hour.getHourIndex());
+            LocalDateTime hourEnd = hourStart.plusHours(1);
+
+            if (hourEnd.isBefore(irrigationStartTime) || hourStart.isAfter(irrigationEndTime)) {
+                continue; // Skip hours that don't intersect
+            }
+
+            // Calculate overlap duration in minutes
+            LocalDateTime overlapStart = irrigationStartTime.isAfter(hourStart) ? irrigationStartTime : hourStart;
+            LocalDateTime overlapEnd = irrigationEndTime.isBefore(hourEnd) ? irrigationEndTime : hourEnd;
+            long overlapMinutes = Duration.between(overlapStart, overlapEnd).toMinutes();
+
+            // Calculate water amount and wet area for the overlapping duration
+            double overlapWaterAmount = (irrigationWaterAmountLiter * overlapMinutes) / totalDurationMinutes;
+            double overlapWetArea = (wetAreaPerHour * overlapMinutes) / totalDurationMinutes;
+
+            // Accumulate the wet area
+            cumulativeWetArea += overlapWetArea;
+
+            // Update the Hour record
+            if (hour.getIrrigationAmount() == null) {
+                hour.setIrrigationAmount(overlapWaterAmount);
+            } else {
+                hour.setIrrigationAmount(hour.getIrrigationAmount() + overlapWaterAmount);
+            }
+
+            // Set the cumulative wet area
+            hour.setIrrigationWetArea(cumulativeWetArea);
+
+            hour.setLastUpdated(LocalDateTime.now());
+        }
+
+        // Save the updated Day record
+        dayRepository.save(day);
+    }
+
 }

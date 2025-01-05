@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Getter
@@ -20,6 +21,9 @@ public class Hour {
 
     @Column(name = "hour_index", nullable = false)
     private int hourIndex;
+
+    @Column(name = "timestamp", nullable = false)
+    private Timestamp timestamp;
 
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
@@ -77,6 +81,15 @@ public class Hour {
     @Column(name = "happened_precipitation")
     private Double happenedPrecipitation;
 
+    @Column(name = "irrigation_amount")
+    private Double irrigationAmount;
+
+    @Column(name = "irrigation_wet_area")
+    private Double irrigationWetArea;
+
+    @Column(name = "rain_wet_area")
+    private Double rainWetArea;
+
     @Column(name = "solar_radiation")
     private Double solarRadiation;
 
@@ -99,6 +112,11 @@ public class Hour {
     public Hour(int hourIndex, Day day) {
         this.hourIndex = hourIndex;
         this.day = day;
+        this.timestamp = calculateTimestamp(hourIndex, day.getDate().toLocalDateTime());
+    }
+
+    private Timestamp calculateTimestamp(int hourIndex, LocalDateTime dayDate) {
+        return Timestamp.valueOf(dayDate.withHour(hourIndex).withMinute(0).withSecond(0));
     }
 
     public Double getWindSpeed(Field.FieldType fieldType) {
