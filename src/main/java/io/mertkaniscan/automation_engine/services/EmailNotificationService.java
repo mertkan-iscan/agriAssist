@@ -1,4 +1,4 @@
-package io.mertkaniscan.automation_engine.services.notification_services;
+package io.mertkaniscan.automation_engine.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;

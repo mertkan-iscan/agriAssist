@@ -9,11 +9,11 @@
     }
   },
   {
-    "type": "multi_soil_mois",
+    "type": "soil_mois_sensor",
     "commandDataTypes": {
       "send_soil_moisture_data": {
         "group": "soil_moisture",
-        "types": ["depth_1", "depth_2", "depth_3", "depth_4"]
+        "types": ["depth_1_1", "depth_1_2", "depth_1_3", "depth_2_1", "depth_2_2", "depth_2_3"]
       }
     }
   },

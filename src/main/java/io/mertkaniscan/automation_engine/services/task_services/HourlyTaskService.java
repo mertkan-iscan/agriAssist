@@ -9,6 +9,7 @@ import io.mertkaniscan.automation_engine.services.forecast_services.solar_foreca
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherForecastService;
 import io.mertkaniscan.automation_engine.services.forecast_services.weather_forecast_service.WeatherResponse;
 
+import io.mertkaniscan.automation_engine.services.main_services.FieldService;
 import io.mertkaniscan.automation_engine.services.main_services.SensorDataService;
 import io.mertkaniscan.automation_engine.utils.calculators.Calculators;
 import lombok.extern.slf4j.Slf4j;
@@ -31,11 +32,12 @@ public class HourlyTaskService {
     private final EToCalculatorService eToCalculatorService;
     private final SensorDataService sensorDataService;
     private final Calculators calculators;
+    private final FieldService fieldService;
 
     public HourlyTaskService(FieldRepository fieldRepository,
                              DayRepository dayRepository,
                              WeatherForecastService weatherForecastService,
-                             CalculatorService calculatorService, EToCalculatorService eToCalculatorService, SensorDataService sensorDataService, Calculators calculators) {
+                             CalculatorService calculatorService, EToCalculatorService eToCalculatorService, SensorDataService sensorDataService, Calculators calculators, FieldService fieldService) {
 
         this.fieldRepository = fieldRepository;
         this.dayRepository = dayRepository;
@@ -44,6 +46,7 @@ public class HourlyTaskService {
         this.eToCalculatorService = eToCalculatorService;
         this.sensorDataService = sensorDataService;
         this.calculators = calculators;
+        this.fieldService = fieldService;
     }
 
     public void setHourlyRecords() {
@@ -86,8 +89,8 @@ public class HourlyTaskService {
                     .orElse(null);
 
             if (currentHour != null) {
-                setHourWeatherValues(currentHour, field);
-                setHourWaterValues(currentHour, field);
+                setHourWeatherValues(currentHour, previousHour, field);
+                setHourWaterValues(currentHour, previousHour, field);
             }
 
             if (previousHour != null) {
@@ -95,7 +98,7 @@ public class HourlyTaskService {
             }
 
             if (previousHour != null && currentHour != null) {
-                setHourlyDifferenceValues(previousHour, currentHour, field);
+                calculatePlantKcb(currentHour, previousHour, field);
             }
 
         } catch (Exception e) {
@@ -103,48 +106,46 @@ public class HourlyTaskService {
         }
     }
 
-    private void setHourlyDifferenceValues(Hour previousHour, Hour currentHour, Field field) {
-
-        Double previousRAW = previousHour.getRAWValueHourly();
-        Double currentRAW = currentHour.getRAWValueHourly();
-        Double happenedPrecipitation = previousHour.getHappenedPrecipitation();
-        Double irrigationAmount = previousHour.getIrrigationAmount();
-        Double sensorEToHourly = previousHour.getSensorEToHourly();
-        Double KeValue = previousHour.getKeValue();
-
-        if (previousRAW == null || currentRAW == null || happenedPrecipitation == null ||
-                irrigationAmount == null || sensorEToHourly == null || KeValue == null) {
-            log.warn("Missing values for calculation: " +
-                            "previousRAW={}, currentRAW={}, happenedPrecipitation={}, irrigationAmount={}, sensorEToHourly={}, KeValue={}",
-                    previousRAW, currentRAW, happenedPrecipitation, irrigationAmount, sensorEToHourly, KeValue);
-            return;
-        }
-
-        double calculatedHourlyKcb =
-                (previousRAW - currentRAW
-                        + happenedPrecipitation
-                        + irrigationAmount
-                        - (KeValue * sensorEToHourly))
-                        / sensorEToHourly;
-
-        log.info("CalculatedHourlyKcb: {}", calculatedHourlyKcb);
-    }
-
     private void setPreviousHourValues(@NotNull Hour previousHour, Field field) {
 
         try {
+            WeatherResponse freshWeatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
 
-            Double rainWetArea = previousHour.getRainWetArea();
-            if(rainWetArea == null) {
-                rainWetArea = 0.0;
+            Double oneHourRain = null;
+            if (freshWeatherResponse != null) {
+                if (freshWeatherResponse.getCurrent() != null) {
+                    if (freshWeatherResponse.getCurrent().getRain() != null) {
+                        oneHourRain = freshWeatherResponse.getCurrent().getRain().getOneHour();
+                        log.info("Rain data fetched successfully for field ID {}: {} mm", field.getFieldID(), oneHourRain);
+                    } else {
+                        log.info("Rain data is not available for field ID {}.", field.getFieldID());
+                    }
+                } else {
+                    log.info("Current weather data is not available for field ID {}.", field.getFieldID());
+                }
+            } else {
+                log.info("Weather response is null for field ID {}.", field.getFieldID());
             }
 
-            Double irrigationWetArea = previousHour.getIrrigationWetArea();
-            if(irrigationWetArea == null) {
-                irrigationWetArea = 0.0;
+            if(oneHourRain != null){
+
+                previousHour.setHappenedPrecipitation(oneHourRain);
+                previousHour.setRainWetArea(1.0);
+            }else{
+
+                previousHour.setHappenedPrecipitation(0.0);
+
+                previousHour.setRainWetArea(0.0);
             }
 
-            Double totalWetArea = rainWetArea + irrigationWetArea;
+            Double previousHourRainWetArea = previousHour.getRainWetArea();
+
+            Double previousHourIrrigationWetArea = previousHour.getIrrigationWetArea();
+            if(previousHourIrrigationWetArea == null) {
+                previousHourIrrigationWetArea = 0.0;
+            }
+
+            Double totalWetArea = (previousHourRainWetArea + previousHourIrrigationWetArea) / 2;
 
             double fieldWiltingPoint = field.getWiltingPoint();
             double fieldCapacity = field.getFieldCapacity();
@@ -163,6 +164,7 @@ public class HourlyTaskService {
 
             previousHour.setKrValue(Kr);
             previousHour.setKeValue(Ke);
+            previousHour.setKcMaxValue(Kcmax);
 
             previousHour.setLastUpdated(LocalDateTime.now());
 
@@ -174,34 +176,37 @@ public class HourlyTaskService {
         }
     }
 
-    private void setHourWeatherValues(Hour hour, Field field) {
+    private void setHourWeatherValues(Hour currentHour, Hour previousHour, Field field) {
         try {
+            if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
 
-            int hourIndex = hour.getHourIndex();
+            } else if (field.getFieldType() == Field.FieldType.OUTDOOR) {
 
-            // pull fresh weather data
+            }
+
+
+            int hourIndex = currentHour.getHourIndex();
+
             WeatherResponse weatherResponse = weatherForecastService.getWeatherDataObj(
                     field.getLatitude(),
                     field.getLongitude()
             );
 
-            Timestamp currentHourTimestamp = hour.getTimestamp();
+            Timestamp currentHourTimestamp = currentHour.getTimestamp();
+            Timestamp previousHourTimestamp = previousHour.getTimestamp();
             System.out.println("currentHourTimestamp: " + currentHourTimestamp);
 
-            // Get mean sensor values using the new method
-            Double meanTemperature = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_temp", currentHourTimestamp);
-            Double meanHumidity = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_hum", currentHourTimestamp);
+            Double meanTemperature = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_temp", previousHourTimestamp, currentHourTimestamp);
+            Double meanHumidity = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_hum", previousHourTimestamp, currentHourTimestamp);
             log.info("mean temperature: {}", meanTemperature);
             log.info("mean humidity: {}", meanHumidity);
 
-            // get previous solar data
-            SolarResponse solarResponse = hour.getDay().getSolarResponse();
+            SolarResponse solarResponse = currentHour.getDay().getSolarResponse();
 
             if (solarResponse == null) {
                 throw new RuntimeException("Solar data is missing in the Day record for field: " + field.getFieldName());
             }
 
-            // Calculate the ETo for the current hour
             double sensorEToHourly = eToCalculatorService.calculateSensorEToHourly(
                     meanTemperature,
                     meanHumidity,
@@ -216,29 +221,28 @@ public class HourlyTaskService {
                     field,
                     hourIndex);
 
-            hour.setForecastEToHourly(currentEToHourly);
-            hour.setSensorEToHourly(sensorEToHourly);
+            currentHour.setForecastEToHourly(currentEToHourly);
+            currentHour.setSensorEToHourly(sensorEToHourly);
 
+            currentHour.setForecastTemperature(weatherResponse.getHourly().get(hourIndex).getTemp());
+            currentHour.setForecastHumidity(weatherResponse.getHourly().get(hourIndex).getHumidity().doubleValue());
 
-            hour.setForecastTemperature(weatherResponse.getHourly().get(hourIndex).getTemp());
-            hour.setForecastHumidity(weatherResponse.getHourly().get(hourIndex).getHumidity().doubleValue());
+            currentHour.setLastUpdated(LocalDateTime.now());
 
-            hour.setLastUpdated(LocalDateTime.now());
+            currentHour.setSensorTemperature(meanTemperature);
+            currentHour.setSensorHumidity(meanHumidity);
 
-            hour.setSensorTemperature(meanTemperature);
-            hour.setSensorHumidity(meanHumidity);
-
-            hour.setSolarRadiation(
+            currentHour.setSolarRadiation(
                     eToCalculatorService.calculateSolarRadiationHourly(weatherResponse, solarResponse, hourIndex));
 
             WeatherResponse.Rain rain = weatherResponse.getCurrent().getRain();
             if (rain != null && rain.getOneHour() != null) {
-                hour.setHappenedPrecipitation(rain.getOneHour());
+                //currentHour.setHappenedPrecipitation(rain.getOneHour());
             } else {
-                hour.setHappenedPrecipitation(0.0);
+                //currentHour.setHappenedPrecipitation(0.0);
             }
 
-            dayRepository.save(hour.getDay());
+            dayRepository.save(currentHour.getDay());
 
             log.info("Updated hourly record for hour={} in field '{}'.", hourIndex, field.getFieldName());
 
@@ -248,7 +252,7 @@ public class HourlyTaskService {
     }
 
     @Transactional
-    public void setHourWaterValues(Hour currentHour, Field field) {
+    public void setHourWaterValues(Hour currentHour, Hour previousHour,  Field field) {
         try {
 
             if (field.getPlantInField() == null) {
@@ -256,17 +260,18 @@ public class HourlyTaskService {
                 return;
             }
 
-            LocalDate currentDate = LocalDate.now();
-            Timestamp startOfHour = Timestamp.valueOf(currentDate.atTime(currentHour.getHourIndex(), 0));
-            Timestamp endOfHour = Timestamp.valueOf(currentDate.atTime(currentHour.getHourIndex(), 59, 59));
+            Timestamp currentHourTimestamp = currentHour.getTimestamp();
+            Timestamp previousHourTimestamp = previousHour.getTimestamp();
 
-            Double TAW = calculatorService.calculateSensorTAW(field, startOfHour, endOfHour);
-            Double TEW = calculatorService.calculateSensorTEW(field, startOfHour, endOfHour);
+            Double TAW = calculatorService.calculateSensorTAW(field, previousHourTimestamp, currentHourTimestamp);
+            Double TEW = calculatorService.calculateSensorTEW(field, previousHourTimestamp, currentHourTimestamp);
 
             Double RAW = calculatorService.calculateSensorRAW(TAW, field);
             Double REW = calculatorService.calculateSensorREW(TEW, field);
 
-            Double Kr = calculatorService.calculateSensorKr(field, TEW, REW);
+            //Double Kr = calculatorService.calculateSensorKr(field, TEW, REW);
+
+            //Double Ke = calculatorService.calculateKe(currentHour, field);
 
             Day today = dayRepository.findByPlant_PlantIDAndDateWithHours(
                     field.getPlantInField().getPlantID(),
@@ -284,7 +289,7 @@ public class HourlyTaskService {
             currentHour.setRAWValueHourly(RAW);
             currentHour.setREWValueHourly(REW);
 
-            currentHour.setKrValue(Kr);
+            //currentHour.setKrValue(Kr);
 
             dayRepository.save(currentHour.getDay());
 
@@ -292,4 +297,88 @@ public class HourlyTaskService {
             log.error("Error setting hourly record values for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
         }
     }
+
+    @Transactional
+    public void calculatePlantKcb(Hour currentHour, Hour previousHour, Field field) {
+        try {
+            if (field == null) {
+                log.warn("Field is null. Skipping calculation.");
+                return;
+            }
+
+            if (field.getPlantInField() == null) {
+                log.warn("No plant associated with field '{}'. Skipping.", field.getFieldName());
+                return;
+            }
+
+            Day today = dayRepository.findByPlant_PlantIDAndDateWithHours(
+                    field.getPlantInField().getPlantID(),
+                    Timestamp.valueOf(LocalDate.now().atStartOfDay())
+            );
+
+            if (today == null) {
+                log.warn("No Day record found for field '{}'. Skipping.", field.getFieldName());
+                return;
+            }
+
+            if (previousHour == null) {
+                log.warn("Previous hour is null for field '{}'. Skipping.", field.getFieldName());
+                return;
+            }
+
+            Double previousHourRAWValueHourly = previousHour.getRAWValueHourly();
+            Double previousHourHappenedPrecipitation = previousHour.getHappenedPrecipitation();
+            Double previousHourIrrigationAmount = previousHour.getIrrigationAmount() == null ? 0.0 : previousHour.getIrrigationAmount();
+            Double previousHourSensorEToHourly = previousHour.getSensorEToHourly();
+            Double previousHourKeValue = previousHour.getKeValue();
+            Double previousHourKcbAdjustedValue = previousHour.getKcbAdjustedValue();
+            Double currentHourRAWValueHourly = currentHour.getRAWValueHourly();
+
+
+
+
+            log.debug("Calculating KcbAdjusted for field '{}':", field.getFieldName());
+            log.debug("previousHourRAWValueHourly: {}", previousHourRAWValueHourly);
+            log.debug("previousHourHappenedPrecipitation: {}", previousHourHappenedPrecipitation);
+            log.debug("previousHourIrrigationAmount: {}", previousHourIrrigationAmount);
+            log.debug("previousHourSensorEToHourly: {}", previousHourSensorEToHourly);
+            log.debug("previousHourKeValue: {}", previousHourKeValue);
+            log.debug("previousHourKcbAdjustedValue: {}", previousHourKcbAdjustedValue);
+            log.debug("currentHourRAWValueHourly: {}", currentHourRAWValueHourly);
+
+
+            if (previousHourRAWValueHourly == null ||
+                    previousHourHappenedPrecipitation == null ||
+                    previousHourIrrigationAmount == null ||
+                    previousHourSensorEToHourly == null ||
+                    previousHourKeValue == null ||
+                    previousHourKcbAdjustedValue == null) {
+                log.warn("One or more values from previous hour are null for field '{}'. Skipping.", field.getFieldName());
+                return;
+            }
+
+            if (currentHour == null) {
+                log.warn("Current hour is null for field '{}'. Skipping.", field.getFieldName());
+                return;
+            }
+
+            double currentHourKcbAdjusted =
+                    (previousHourRAWValueHourly
+                            + previousHourHappenedPrecipitation
+                            + previousHourIrrigationAmount
+                            - currentHourRAWValueHourly
+                            - (previousHourKeValue * previousHourSensorEToHourly))
+                            / previousHourSensorEToHourly;
+
+            log.debug("Calculated currentHourKcbAdjusted: {}", currentHourKcbAdjusted);
+
+            currentHour.setKcbAdjustedValue(currentHourKcbAdjusted);
+
+            dayRepository.save(currentHour.getDay());
+
+        } catch (Exception e) {
+            log.error("Error setting hourly record values for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
+        }
+    }
+
 }

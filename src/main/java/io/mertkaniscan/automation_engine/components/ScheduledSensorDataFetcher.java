@@ -6,7 +6,7 @@ import io.mertkaniscan.automation_engine.models.SensorData;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.services.main_services.SensorDataService;
 import io.mertkaniscan.automation_engine.services.device_services.SensorDataSocketService;
-import io.mertkaniscan.automation_engine.services.notification_services.EmailNotificationService;
+import io.mertkaniscan.automation_engine.services.EmailNotificationService;
 import io.mertkaniscan.automation_engine.utils.FetchInterval;
 
 import lombok.extern.slf4j.Slf4j;

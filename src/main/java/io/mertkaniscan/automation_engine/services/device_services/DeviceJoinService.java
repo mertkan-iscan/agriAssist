@@ -42,13 +42,15 @@ public class DeviceJoinService {
     private final FieldService fieldService;
     private final ScheduledSensorDataFetcher scheduledSensorDataFetcher;
     private final SimpMessagingTemplate messagingTemplate;
+    private final DeviceCommandConfigLoader deviceCommandConfigLoader;
 
     @Autowired
-    public DeviceJoinService(DeviceService deviceService, FieldService fieldService, ScheduledSensorDataFetcher scheduledSensorDataFetcher, SimpMessagingTemplate messagingTemplate) {
+    public DeviceJoinService(DeviceService deviceService, FieldService fieldService, ScheduledSensorDataFetcher scheduledSensorDataFetcher, SimpMessagingTemplate messagingTemplate, DeviceCommandConfigLoader deviceCommandConfigLoader) {
         this.deviceService = deviceService;
         this.fieldService = fieldService;
         this.scheduledSensorDataFetcher = scheduledSensorDataFetcher;
         this.messagingTemplate = messagingTemplate;
+        this.deviceCommandConfigLoader = deviceCommandConfigLoader;
     }
 
     public void startJoinServer(int port) {
@@ -219,11 +221,11 @@ public class DeviceJoinService {
         }
     }
 
-    public static void sendDeviceJoinAcceptResponse(Socket deviceSocket) {
+    public void sendDeviceJoinAcceptResponse(Socket deviceSocket) {
 
         try {
             PrintWriter out = new PrintWriter(deviceSocket.getOutputStream(), true);
-            String message = DeviceCommandConfigLoader.getDeviceJoinResponse("join_accepted");
+            String message = deviceCommandConfigLoader.getDeviceJoinResponse("join_accepted");
             Thread.sleep(1000);
 
             out.println(message);
@@ -236,11 +238,11 @@ public class DeviceJoinService {
         }
     }
 
-    public static void sendDeviceJoinRefuseResponse(Socket deviceSocket) {
+    public void sendDeviceJoinRefuseResponse(Socket deviceSocket) {
 
         try {
             PrintWriter out = new PrintWriter(deviceSocket.getOutputStream(), true);
-            String message = DeviceCommandConfigLoader.getDeviceJoinResponse("join_refused");
+            String message = deviceCommandConfigLoader.getDeviceJoinResponse("join_refused");
             Thread.sleep(1000);
 
             out.println(message);

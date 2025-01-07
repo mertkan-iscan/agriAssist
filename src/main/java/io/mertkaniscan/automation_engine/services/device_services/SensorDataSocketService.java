@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import io.mertkaniscan.automation_engine.components.DeviceLockManager;
 import io.mertkaniscan.automation_engine.models.SensorData;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
 import io.mertkaniscan.automation_engine.models.Device;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -21,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 @Slf4j
 @Service
@@ -31,13 +34,15 @@ public class SensorDataSocketService {
     private final DeviceService deviceService;
     private final SensorConfigService sensorConfigService;
     private final DeviceCommandConfigLoader deviceCommandConfigLoader;
+    private final DeviceLockManager deviceLockManager;
 
     public SensorDataSocketService(DeviceService deviceService,
                                    SensorConfigService sensorConfigService,
-                                   DeviceCommandConfigLoader deviceCommandConfigLoader) {
+                                   DeviceCommandConfigLoader deviceCommandConfigLoader, DeviceLockManager deviceLockManager) {
         this.deviceService = deviceService;
         this.sensorConfigService = sensorConfigService;
         this.deviceCommandConfigLoader = deviceCommandConfigLoader;
+        this.deviceLockManager = deviceLockManager;
     }
 
     public <T> List<T> fetchSensorData(int deviceID, DataParser<T> parser) throws Exception {
@@ -51,62 +56,97 @@ public class SensorDataSocketService {
             throw new Exception("Device with ID " + deviceID + " is not a sensor device.");
         }
 
-        log.info("Locking device with ID: {}", device.getDeviceID());
-        device.lock();
+
+        Lock lock = deviceLockManager.getLockForDevice(deviceID);
+
         try {
+            if (!lock.tryLock(30, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Device is already locked by another operation.");
+            }
+
             return communicateWithDevice(device, parser);
+
         } finally {
             log.info("Unlocking device with ID: {}", device.getDeviceID());
-            device.unlock();
+            lock.unlock();
         }
     }
 
     private <T> List<T> communicateWithDevice(Device device, DataParser<T> parser) throws Exception {
         String deviceIp = device.getDeviceIp();
-        List<T> allSensorData = new ArrayList<>();
         String sensorType = device.getDeviceModel();
         Integer devicePort = device.getDevicePort();
+        List<T> allSensorData = new ArrayList<>();
 
         List<String> availableCommands = sensorConfigService.getAvailableCommandsForSensorType(sensorType);
-
         if (availableCommands == null || availableCommands.isEmpty()) {
             throw new Exception("No commands configured for sensor type: " + sensorType);
         }
 
         for (String command : availableCommands) {
-            Callable<List<T>> fetchSensorDataTask = () -> {
-                try (Socket socket = new Socket(deviceIp, devicePort);
+            boolean success = false;
+            int retries = 0;
+            final int maxRetries = 3;
 
-                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+            while (!success && retries < maxRetries) {
+                retries++;
 
-                    String commandJson = getCommandJson(command);
-                    out.println(commandJson);
+                Callable<List<T>> fetchSensorDataTask = () -> {
+                    try (Socket socket = new Socket()) {
+                        socket.connect(new InetSocketAddress(deviceIp, devicePort), 30000); // 30-second connect timeout
+                        socket.setSoTimeout(30000); // 30-second read timeout
 
-                    String sensorDataJson = in.readLine();
+                        try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-                    if (sensorDataJson == null || sensorDataJson.isEmpty()) {
-                        throw new Exception("Received empty sensor data from device ID: " + device.getDeviceID());
+                            String commandJson = getCommandJson(command);
+                            log.info("Sending command '{}' to device ID: {}.", command, device.getDeviceID());
+                            out.println(commandJson);
+
+                            String sensorDataJson = in.readLine();
+                            if (sensorDataJson == null || sensorDataJson.isEmpty()) {
+                                log.warn("Received empty sensor data for command '{}' from device ID: {}", command, device.getDeviceID());
+                                return Collections.emptyList();
+                            }
+
+                            return parser.parse(sensorDataJson, device, command);
+                        }
+                    } catch (IOException e) {
+                        throw new Exception("Error communicating with device ID " + device.getDeviceID() + ": " + e.getMessage(), e);
                     }
+                };
 
-                    return parser.parse(sensorDataJson, device, command);
+                Future<List<T>> future = executorService.submit(fetchSensorDataTask);
 
-                } catch (IOException e) {
-                    throw new Exception("Error communicating with device ID " + device.getDeviceID() + ": " + e.getMessage());
+                try {
+                    List<T> commandData = future.get(20, TimeUnit.SECONDS); // Wait for response
+                    allSensorData.addAll(commandData);
+
+                    if (!commandData.isEmpty()) {
+                        log.info("Successfully received sensor data for command '{}' from device ID: {}", command, device.getDeviceID());
+                        success = true;
+                        break; // Stop processing further commands on success
+                    } else {
+                        log.warn("Empty data received for command '{}' from device ID: {}. Retrying...", command, device.getDeviceID());
+                    }
+                } catch (Exception e) {
+                    future.cancel(true);
+                    log.error("Attempt {} for command '{}' failed: {}. Device ID: {}", retries, command, e.getMessage(), device.getDeviceID());
                 }
-            };
 
-            Future<List<T>> future = executorService.submit(fetchSensorDataTask);
-
-            try {
-
-                List<T> commandData = future.get(20, TimeUnit.SECONDS);
-                allSensorData.addAll(commandData);
-
-            } catch (Exception e) {
-                future.cancel(true);
-                throw new Exception("Timeout: No response from device within 20 seconds. Device ID: " + device.getDeviceID());
+                if (retries < maxRetries) {
+                    log.info("Retrying command '{}' for device ID: {} (Attempt {}/{})...", command, device.getDeviceID(), retries + 1, maxRetries);
+                    Thread.sleep(2000); // Retry delay
+                }
             }
+
+            if (!success) {
+                log.error("Failed to fetch data for command '{}' from device ID: {} after {} attempts.", command, device.getDeviceID(), maxRetries);
+            }
+        }
+
+        if (allSensorData.isEmpty()) {
+            throw new Exception("No valid sensor data received from device ID: " + device.getDeviceID());
         }
 
         return allSensorData;

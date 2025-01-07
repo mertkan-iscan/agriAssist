@@ -25,6 +25,14 @@ public class Calculators {
         return Kr * (KcMax - Kcb) * fw;
     }
 
+//    public static double calculateKeFao(double Kr,
+//                                     double fw,
+//                                     double KcMax,
+//                                     double Kcb) {
+//
+//        return Math.min(Kr * (KcMax - Kcb), fe * KcMax);
+//    }
+
     public static double calculateKr(double evaporationDeficit, double TEW, double REW) {
         if (evaporationDeficit > TEW) {
             return 0.0;

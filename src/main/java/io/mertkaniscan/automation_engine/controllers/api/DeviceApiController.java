@@ -1,6 +1,7 @@
 package io.mertkaniscan.automation_engine.controllers.api;
 
 
+import io.mertkaniscan.automation_engine.components.DeviceLockManager;
 import io.mertkaniscan.automation_engine.utils.FetchInterval;
 import io.mertkaniscan.automation_engine.components.ScheduledSensorDataFetcher;
 import io.mertkaniscan.automation_engine.services.device_services.DeviceJoinService;
@@ -20,11 +21,13 @@ public class DeviceApiController {
     private final DeviceService deviceService;
     private final DeviceJoinService deviceJoinService;
     private final ScheduledSensorDataFetcher scheduledSensorDataFetcher;
+    private final DeviceLockManager deviceLockManager;
 
-    public DeviceApiController(DeviceService deviceService, DeviceJoinService deviceJoinService, ScheduledSensorDataFetcher scheduledSensorDataFetcher) {
+    public DeviceApiController(DeviceService deviceService, DeviceJoinService deviceJoinService, ScheduledSensorDataFetcher scheduledSensorDataFetcher, DeviceLockManager deviceLockManager) {
         this.deviceService = deviceService;
         this.deviceJoinService = deviceJoinService;
         this.scheduledSensorDataFetcher = scheduledSensorDataFetcher;
+        this.deviceLockManager = deviceLockManager;
     }
 
     @PostMapping("/{deviceID}/join-request")
@@ -76,6 +79,7 @@ public class DeviceApiController {
     @PostMapping("/{id}/delete")
     public ResponseEntity<Void> deleteDevicePost(@PathVariable int id) {
         boolean isDeleted = deviceService.deleteDevice(id);
+        deviceLockManager.removeLockForDevice(id);
         return isDeleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 

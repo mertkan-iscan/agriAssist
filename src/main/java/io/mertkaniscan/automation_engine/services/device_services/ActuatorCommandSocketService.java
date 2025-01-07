@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.mertkaniscan.automation_engine.models.Device;
 import io.mertkaniscan.automation_engine.services.main_services.DeviceService;
+import io.mertkaniscan.automation_engine.components.DeviceLockManager;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.net.Socket;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
 
 @Slf4j
 @Service
@@ -25,10 +27,12 @@ public class ActuatorCommandSocketService {
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
+    private final DeviceLockManager deviceLockManager;
     private final DeviceService deviceService;
     private final DeviceCommandConfigLoader deviceCommandConfigLoader;
 
-    public ActuatorCommandSocketService(DeviceService deviceService, DeviceCommandConfigLoader deviceCommandConfigLoader) {
+    public ActuatorCommandSocketService(DeviceLockManager deviceLockManager, DeviceService deviceService, DeviceCommandConfigLoader deviceCommandConfigLoader) {
+        this.deviceLockManager = deviceLockManager;
         this.deviceService = deviceService;
         this.deviceCommandConfigLoader = deviceCommandConfigLoader;
     }
@@ -44,32 +48,35 @@ public class ActuatorCommandSocketService {
             throw new Exception("Device with ID " + deviceID + " is not an actuator device.");
         }
 
-        log.info("Locking device with ID: {}", device.getDeviceID());
-        device.lock();
+        Lock lock = deviceLockManager.getLockForDevice(deviceID);
+
         try {
+            if (!lock.tryLock(30, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Device is already locked by another operation.");
+            }
+
             return communicateWithActuator(device, degree);
         } finally {
-            log.info("Unlocking device with ID: {}", device.getDeviceID());
-            device.unlock();
+            lock.unlock();
         }
     }
+
 
     private String communicateWithActuator(Device device, int degree) throws Exception {
         String deviceIp = device.getDeviceIp();
         Integer devicePort = device.getDevicePort();
 
         Callable<String> sendCommandTask = () -> {
+
             try (Socket socket = new Socket(deviceIp, devicePort);
+
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                  BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-                // Create the actuator command JSON
                 String command = deviceCommandConfigLoader.getValveActuatorCommand(degree);
-
 
                 out.println(command);
 
-                // Read response from the actuator
                 String responseJson = in.readLine();
 
                 if (responseJson == null || responseJson.isEmpty()) {
@@ -114,13 +121,10 @@ public class ActuatorCommandSocketService {
             Integer degree = getCalibrationValue(flowRate, actuator);
 
             log.info("Locking actuator with ID: {} for opening", actuator.getDeviceID());
-            actuator.lock();
-            try {
-                sendActuatorCommand(actuator.getDeviceID(), degree);
-            } finally {
-                log.info("Unlocking actuator with ID: {} after opening", actuator.getDeviceID());
-                actuator.unlock();
-            }
+
+
+            sendActuatorCommand(actuator.getDeviceID(), degree);
+
         }
     }
 

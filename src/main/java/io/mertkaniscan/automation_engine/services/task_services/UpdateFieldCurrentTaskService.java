@@ -90,6 +90,8 @@ public class UpdateFieldCurrentTaskService {
             log.info("Solar response pulled from db successfully.");
 
             Timestamp currentHourTimestamp = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
+
+
             Double meanTemperature = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_temp", currentHourTimestamp);
             Double meanHumidity = sensorDataService.getMeanSensorDataByFieldIdTypeAndTimestamp(field.getFieldID(), "weather_hum", currentHourTimestamp);
             log.info("Sensor data pulled successfully.");
@@ -110,7 +112,6 @@ public class UpdateFieldCurrentTaskService {
 //
 //            field.getCurrentValues().setForecastETo(currentEToHourly);
 //            field.getCurrentValues().setSensorETo(sensorEToHourly);
-
 
 
             FieldCurrentValues newCurrentValues = field.getCurrentValues();
@@ -149,8 +150,8 @@ public class UpdateFieldCurrentTaskService {
                 newCurrentValues.setIsRaining(false);
             }
 
-            newCurrentValues.setTewValue(calculatorService.calculateSensorTEW(field, 10));
-            newCurrentValues.setTawValue(calculatorService.calculateSensorTAW(field, 10));
+            newCurrentValues.setTewValue(calculatorService.calculateSensorTEW(field, 30));
+            newCurrentValues.setTawValue(calculatorService.calculateSensorTAW(field, 30));
             field.setCurrentValues(newCurrentValues);
 
             newCurrentValues.setRewValue(calculatorService.calculateSensorREW(field.getCurrentValues().getTewValue(), field));

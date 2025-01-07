@@ -136,24 +136,34 @@ public class DailyTaskService {
         int currentHourIndex = LocalDateTime.now().getHour();
 
         for (int hourIndex = 0; hourIndex < 24; hourIndex++) {
+
             int finalHourIndex = hourIndex;
             Optional<Hour> existingHour = day.getHours().stream()
                     .filter(hour -> hour.getHourIndex() == finalHourIndex)
                     .findFirst();
 
             if (existingHour.isEmpty()) {
+
                 Hour newHour = new Hour(hourIndex, day);
                 day.getHours().add(newHour);
+
                 if (hourIndex <= currentHourIndex) {
+
                     updatePastHourData(newHour, field, hourIndex, day);
                 } else {
+
                     updateFutureHourData(newHour, field, hourIndex, day);
                 }
+
             } else {
+
                 Hour hour = existingHour.get();
+
                 if (hourIndex <= currentHourIndex) {
+
                     updatePastHourData(hour, field, hourIndex, day);
                 } else {
+
                     updateFutureHourData(hour, field, hourIndex, day);
                 }
             }
@@ -163,27 +173,72 @@ public class DailyTaskService {
 
     private void updatePastHourData(Hour hour, Field field, int hourIndex, Day day) {
         try {
-            Timestamp startOfHour = Timestamp.valueOf(LocalDate.now().atTime(hourIndex, 0));
-            Timestamp endOfHour = Timestamp.valueOf(LocalDate.now().atTime(hourIndex, 59, 59));
 
-            WeatherResponse weather = fieldService.getWeatherDataByFieldId(field.getFieldID());
-            SolarResponse solar = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
+            Timestamp previousHourTimestamp = Timestamp.valueOf(LocalDate.now().atTime(hourIndex-1, 0));
+            Timestamp currentHourTimestamp = hour.getTimestamp();
 
-            // Fetch sensor data
-            Double meanTemperature = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_temp", startOfHour, endOfHour);
-            Double meanHumidity = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_hum", startOfHour, endOfHour);
 
-            if (meanTemperature != null && meanHumidity != null) {
-                hour.setSensorTemperature(meanTemperature);
-                hour.setSensorHumidity(meanHumidity);
+            if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
+                //use sensor data
+                Double meanTemperature = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_temp", previousHourTimestamp, currentHourTimestamp);
+                Double meanHumidity = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_hum", previousHourTimestamp, currentHourTimestamp);
 
-                double eto = eToCalculatorService.calculateSensorEToHourly(meanTemperature, meanHumidity, weather, solar, field, hourIndex);
-                hour.setSensorEToHourly(eto);
+                if (meanTemperature != null && meanHumidity != null) {
+
+                    hour.setSensorTemperature(meanTemperature);
+                    hour.setSensorHumidity(meanHumidity);
+                    double eto = eToCalculatorService.calculateSensorEToHourly(meanTemperature, meanHumidity, null, null, field, hourIndex);
+                    hour.setSensorEToHourly(eto);
+
+                } else {
+                    log.warn("Sensor data is missing for hourIndex={} in Day ID={}. Skipping sensor-based calculations.", hourIndex, day.getDayID());
+                }
+            } else if (field.getFieldType() == Field.FieldType.OUTDOOR) {
+                //use forecast data
+                WeatherResponse freshWeatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
+                SolarResponse freshSolarResponse = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
+
+                double eto = eToCalculatorService.calculateForecastEToHourly(freshWeatherResponse, freshSolarResponse, field, hourIndex);
+                hour.setForecastEToHourly(eto);
+            }
+
+            Double TAW = calculatorService.calculateSensorTAW(field, previousHourTimestamp, currentHourTimestamp);
+            if (TAW != null) {
+                hour.setTAWValueHourly(TAW);
             } else {
-                log.warn("Sensor data is missing for hourIndex={} in Day ID={}. Skipping sensor-based calculations.", hourIndex, day.getDayID());
+                log.warn("TAW calculation returned null for field '{}' between {} and {}.", field.getFieldName(), previousHourTimestamp, currentHourTimestamp);
+            }
+
+            Double TEW = calculatorService.calculateSensorTEW(field, previousHourTimestamp, currentHourTimestamp);
+            if (TEW != null) {
+                hour.setTEWValueHourly(TEW);
+            } else {
+                log.warn("TEW calculation returned null for field '{}' between {} and {}.", field.getFieldName(), previousHourTimestamp, currentHourTimestamp);
+            }
+
+            Double RAW = (TAW != null) ? calculatorService.calculateSensorRAW(TAW, field) : null;
+            if (RAW != null) {
+                hour.setRAWValueHourly(RAW);
+            } else {
+                log.warn("RAW calculation returned null for field '{}' using TAW={}.", field.getFieldName(), TAW);
+            }
+
+            Double REW = (TEW != null) ? calculatorService.calculateSensorREW(TEW, field) : null;
+            if (REW != null) {
+                hour.setREWValueHourly(REW);
+            } else {
+                log.warn("REW calculation returned null for field '{}' using TEW={}.", field.getFieldName(), TEW);
+            }
+
+            Double Kr = (TEW != null && REW != null) ? calculatorService.calculateSensorKr(field, TEW, REW) : null;
+            if (Kr != null) {
+                hour.setKrValue(Kr);
+            } else {
+                log.warn("Kr calculation returned null for field '{}' using TEW={} and REW={}.", field.getFieldName(), TEW, REW);
             }
 
             hour.setLastUpdated(LocalDateTime.now());
+
         } catch (Exception e) {
             log.error("Error updating past hour data for hourIndex={} in Day ID={}: {}", hourIndex, day.getDayID(), e.getMessage(), e);
         }
@@ -191,9 +246,20 @@ public class DailyTaskService {
 
     private void updateFutureHourData(Hour hour, Field field, int hourIndex, Day day) {
         try {
-            WeatherResponse weather = fieldService.getWeatherDataByFieldId(field.getFieldID());
-            SolarResponse solar = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
-            hour.setForecastEToHourly(eToCalculatorService.calculateForecastEToHourly(weather, solar, field, hourIndex));
+
+            if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
+
+            }else if (field.getFieldType() == Field.FieldType.OUTDOOR) {
+                WeatherResponse weather = fieldService.getWeatherDataByFieldId(field.getFieldID());
+                SolarResponse solar = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
+
+                hour.setForecastEToHourly(eToCalculatorService.calculateForecastEToHourly(weather, solar, field, hourIndex));
+
+            }
+
+            hour.setIrrigationWetArea(0.0);
+            hour.setRainWetArea(0.0);
+
         } catch (Exception e) {
             log.error("Error updating future hour data for hourIndex={} in Day ID={}: {}", hourIndex, day.getDayID(), e.getMessage(), e);
         }
@@ -210,6 +276,7 @@ public class DailyTaskService {
             day.setTEWValueDaily(TEW != null ? TEW : 0.0);
             day.setRAWValueDaily(RAW != null ? RAW : 0.0);
             day.setREWValueDaily(REW != null ? REW : 0.0);
+
         } catch (Exception e) {
             log.error("Error calculating water variables for Day ID={}: {}", day.getDayID(), e.getMessage(), e);
         }

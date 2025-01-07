@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.mertkaniscan.automation_engine.utils.FetchInterval;
-import io.mertkaniscan.automation_engine.utils.NonReentrantLock;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,9 +22,6 @@ import java.util.Map;
 @Entity
 @Table(name = "devices", uniqueConstraints = @UniqueConstraint(columnNames = "device_ip"))
 public class Device {
-
-    @Transient
-    private final NonReentrantLock lock = new NonReentrantLock();
 
     public enum DeviceStatus {
         WAITING,
@@ -139,20 +135,20 @@ public class Device {
     }
 
     @Transient
-    public Map<Double, Integer> getCalibrationPolynomial() {
+    public Map<String, Integer> getCalibrationPolynomial() {
         if (calibrationData == null || calibrationData.isEmpty()) {
             return new HashMap<>();
         }
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(calibrationData, new TypeReference<Map<Double, Integer>>() {});
+            return objectMapper.readValue(calibrationData, new TypeReference<Map<String, Integer>>() {});
         } catch (IOException e) {
             throw new RuntimeException("Failed to parse calibration data for device ID " + this.deviceID, e);
         }
     }
 
     @Transient
-    public void setCalibrationPolynomial(Map<Double, Integer> polynomial) {
+    public void setCalibrationPolynomial(Map<String, Integer> polynomial) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             this.calibrationData = objectMapper.writeValueAsString(polynomial);
@@ -161,23 +157,14 @@ public class Device {
         }
     }
 
-    /**
-     * Set default calibration polynomial.
-     */
     public void setDefaultCalibrationPolynomial() {
         if (this.calibrationData == null || this.calibrationData.isEmpty()) {
-            Map<Double, Integer> defaultPolynomial = new HashMap<>();
-            defaultPolynomial.put(0.024114825980221664, 1);
-            defaultPolynomial.put(2.6691733715467696, 0);
+            Map<String, Integer> defaultPolynomial = new HashMap<>();
+            defaultPolynomial.put("6.308", 0);
+            defaultPolynomial.put("0.05018", 1);
+            defaultPolynomial.put("-0.00003893", 2);
+            defaultPolynomial.put("0.000000009413", 3);
             setCalibrationPolynomial(defaultPolynomial);
         }
-    }
-
-    public void lock() throws InterruptedException {
-        lock.lock();
-    }
-
-    public void unlock() {
-        lock.unlock();
     }
 }

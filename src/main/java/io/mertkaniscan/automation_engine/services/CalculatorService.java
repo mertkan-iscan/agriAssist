@@ -36,14 +36,17 @@ public class CalculatorService {
         Double humidity = field.getCurrentValues().getSensorHumidity();
 
         if (humidity == null && field.getFieldType().equals(Field.FieldType.GREENHOUSE)) {
+
             log.warn("Humidity is null for field: {}", field.getFieldID());
             return null;
+
         } else {
             humidity = field.getCurrentValues().getForecastHumidity();
         }
 
         Double windSpeed;
         if(field.getFieldType().equals(Field.FieldType.GREENHOUSE)) {
+
             windSpeed = 0.0;
         }else{
             windSpeed = field.getCurrentValues().getForecastWindSpeed();
@@ -58,6 +61,40 @@ public class CalculatorService {
         return result;
     }
 
+    public Double calculateKe(Hour hour, Field field) {
+        log.info("Calculating Ke for field: {}", field.getFieldID());
+
+        double KcbAdjusted = field.getPlantInField().getCurrentKcValue();
+
+        Double humidity = hour.getSensorHumidity() == null ? field.getCurrentValues().getSensorHumidity() : hour.getSensorHumidity();
+
+        if (humidity == null && field.getFieldType().equals(Field.FieldType.GREENHOUSE)) {
+
+            log.warn("Humidity is null for field: {}", field.getFieldID());
+
+            return null;
+
+        } else {
+            humidity = field.getCurrentValues().getForecastHumidity();
+        }
+
+        Double windSpeed;
+        if(field.getFieldType().equals(Field.FieldType.GREENHOUSE)) {
+
+            windSpeed = 0.0;
+        }else{
+            windSpeed = field.getCurrentValues().getForecastWindSpeed();
+        }
+
+        double KcMax = Calculators.calculateKcMax(KcbAdjusted, humidity, windSpeed);
+        double Kr = calculateSensorKr(hour, field);
+        double fw = hour.getIrrigationWetArea() + hour.getRainWetArea();
+
+        Double result = Calculators.calculateKe(Kr, fw, KcMax, KcbAdjusted);
+        log.info("Ke calculated: {}", result);
+        return result;
+    }
+
     public double calculateSensorKr(Field field) {
         log.info("Calculating Kr for field: {}", field.getFieldID());
 
@@ -66,6 +103,23 @@ public class CalculatorService {
         double fieldCapacity = field.getFieldCapacity();
 
         Double sensorTEWValue = field.getCurrentValues().getTewValue();
+        double soilMoisture = (sensorTEWValue * 100) / (field.getMaxEvaporationDepth() * 1000);
+        double sensorREWValue = sensorTEWValue * evaporationCoeff;
+
+        double result = Calculators.calculateSensorKr(sensorREWValue, soilMoisture, fieldCapacity, fieldWiltingPoint);
+        log.info("Kr calculated: {}", result);
+
+        return result;
+    }
+
+    public double calculateSensorKr(Hour hour, Field field) {
+        log.info("Calculating Kr for field: {}", field.getFieldID());
+
+        double evaporationCoeff = field.getEvaporationCoeff();
+        double fieldWiltingPoint = field.getWiltingPoint();
+        double fieldCapacity = field.getFieldCapacity();
+
+        Double sensorTEWValue = hour.getTEWValueHourly();
         double soilMoisture = (sensorTEWValue * 100) / (field.getMaxEvaporationDepth() * 1000);
         double sensorREWValue = sensorTEWValue * evaporationCoeff;
 
@@ -99,6 +153,7 @@ public class CalculatorService {
         log.info("Fw calculated: {}", result);
         return result;
     }
+
 
     public double calculateSensorTAW(Field field, int minutesBack) {
         log.info("Calculating TAW for field: {}, minutesBack: {}", field.getFieldID(), minutesBack);

@@ -7,6 +7,8 @@
         "rootZoneDepth": 0.05,
         "allowableDepletion": 0.2,
         "kcValue": 0.6,
+        "minDays": 7,
+        "maxDays": 14,
         "dayValues": {
           "Tmax": 24.0,
           "Tmin": 18.0,
@@ -25,6 +27,8 @@
         "rootZoneDepth": 0.1,
         "allowableDepletion": 0.3,
         "kcValue": 1.05,
+        "minDays": 15,
+        "maxDays": 30,
         "dayValues": {
           "Tmax": 26.0,
           "Tmin": 20.0,
@@ -43,6 +47,8 @@
         "rootZoneDepth": 0.08,
         "allowableDepletion": 0.4,
         "kcValue": 0.95,
+        "minDays": 31,
+        "maxDays": 40,
         "dayValues": {
           "Tmax": 25.0,
           "Tmin": 19.0,
@@ -66,6 +72,8 @@
         "rootZoneDepth": 0.2,
         "allowableDepletion": 0.2,
         "kcValue": 0.7,
+        "minDays": 10,
+        "maxDays": 20,
         "dayValues": {
           "Tmax": 28.0,
           "Tmin": 22.0,
@@ -84,6 +92,8 @@
         "rootZoneDepth": 0.25,
         "allowableDepletion": 0.3,
         "kcValue": 1.1,
+        "minDays": 21,
+        "maxDays": 40,
         "dayValues": {
           "Tmax": 30.0,
           "Tmin": 24.0,
@@ -107,6 +117,8 @@
         "rootZoneDepth": 0.05,
         "allowableDepletion": 0.25,
         "kcValue": 0.7,
+        "minDays": 10,
+        "maxDays": 20,
         "dayValues": {
           "Tmax": 22.0,
           "Tmin": 16.0,
@@ -125,6 +137,8 @@
         "rootZoneDepth": 0.08,
         "allowableDepletion": 0.3,
         "kcValue": 1.1,
+        "minDays": 21,
+        "maxDays": 35,
         "dayValues": {
           "Tmax": 24.0,
           "Tmin": 18.0,

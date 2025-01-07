@@ -35,6 +35,13 @@ public class Hour {
     @Column(name = "kr_value")
     private Double KrValue;
 
+    //plant
+    @Column(name = "kcb_adjusted")
+    private Double KcbAdjustedValue;
+
+    @Column(name = "kc_max")
+    private Double KcMaxValue;
+
     // water
     @Column(name = "taw_value_hourly")
     private Double TAWValueHourly;
