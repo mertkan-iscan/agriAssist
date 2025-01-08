@@ -100,12 +100,6 @@ public class Hour {
     @Column(name = "solar_radiation")
     private Double solarRadiation;
 
-    @Column(name = "de_value")
-    private Double DeValue;
-
-    @Column(name = "hourly_depletion")
-    private Double hourlyDepletion;
-
     @Column(name = "calculated_kcb_adjusted")
     private Double calculatedKcbAdjusted;
 

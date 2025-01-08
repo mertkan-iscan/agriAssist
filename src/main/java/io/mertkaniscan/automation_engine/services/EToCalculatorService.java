@@ -106,10 +106,8 @@ public class EToCalculatorService {
         double pressureHpa = weatherResponse.getCurrent().getPressure();
 
         int cloudCoverage = weatherResponse.getCurrent().getClouds();
-
         double clearSkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getClearSky().getGhi();
         double cloudySkyGHI = solarResponse.getIrradiance().getHourly().get(hourIndex).getCloudySky().getGhi();
-
         double ghi = calculateGHI(clearSkyGHI, cloudySkyGHI, cloudCoverage);
 
         double windSpeed = getHourlyWindSpeed(field, weatherResponse, hourIndex);
@@ -155,37 +153,56 @@ public class EToCalculatorService {
 
     public double calculateSensorEToHourly(Double sensorTemp, Double sensorHumidity, WeatherResponse weatherResponse, SolarResponse solarResponse, Field field, int hourIndex) {
 
+        // Log sensor temperature and humidity
+        log.info("Sensor Temperature: {}", sensorTemp);
+        log.info("Sensor Humidity: {}", sensorHumidity);
+
         double temp = sensorTemp;
         double humidity = sensorHumidity;
 
+        // Log field latitude and elevation
         double latitude = field.getLatitude();
-        double pressureHpa = weatherResponse.getCurrent().getPressure();
-
-        double ghi = calculateSolarRadiationHourly(weatherResponse, solarResponse, hourIndex);
-
-        double windSpeed = getHourlyWindSpeed(field, weatherResponse, hourIndex);
-
         double elevation = field.getElevation();
+        log.info("Field Latitude: {}", latitude);
+        log.info("Field Elevation: {}", elevation);
 
-        // Calculate day of the year and the current hour
+        // Log pressure from weather response
+        double pressureHpa = weatherResponse.getCurrent().getPressure();
+        log.info("Atmospheric Pressure (hPa): {}", pressureHpa);
+
+        // Calculate and log solar radiation (GHI) for the hour
+        double ghi = calculateSolarRadiationHourly(weatherResponse, solarResponse, hourIndex);
+        log.info("Global Horizontal Irradiance (GHI): {}", ghi);
+
+        // Calculate and log wind speed
+        double windSpeed = getHourlyWindSpeed(field, weatherResponse, hourIndex);
+        log.info("Hourly Wind Speed: {}", windSpeed);
+
+
+        // Calculate and log day of the year and current hour
         int dayOfYear = LocalDateTime.now().getDayOfYear();
-        int hour = LocalDateTime.now().getHour();
+        log.info("Day of the Year: {}", dayOfYear);
 
-        // Determine if it's daytime based on solar radiation
+        // Determine and log whether it's daytime
         boolean isDaytime = ghi > 0;
+        log.info("Is Daytime: {}", isDaytime);
 
-        // Use the HourlyEToCalculator to calculate ETo
+        // Use the HourlyEToCalculator to calculate ETo and log the result
         double eto = HourlyEToCalculator.calculateEToHourly(
-                temp, humidity, ghi, windSpeed, latitude, elevation, pressureHpa, dayOfYear, hour, isDaytime);
+                temp, humidity, ghi, windSpeed, latitude, elevation, pressureHpa, dayOfYear, hourIndex, isDaytime);
+        log.info("Calculated ETo (Hourly): {}", eto);
 
-        // Ensure value is non-negative
+        // Ensure the value is non-negative
         if (eto < 0) {
             log.warn("Calculated ETo (Hourly) is negative! Setting to 0. Value: {}", eto);
             eto = 0.0;
         }
 
+        log.info("Final ETo (Hourly): {}", eto);
+
         return eto;
     }
+
 
     public double calculateSolarRadiationHourly(WeatherResponse weatherResponse, SolarResponse solarResponse, int hourIndex){
 
@@ -199,14 +216,14 @@ public class EToCalculatorService {
 
     public double getHourlyWindSpeed(Field field, WeatherResponse weatherResponse, int hourIndex) {
         if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
-            return 0.0;
+            return 0.1;
         }
         return weatherResponse.getHourly().get(hourIndex).getWindSpeed();
     }
 
     public double getDailyWindSpeed(Field field, WeatherResponse weatherResponse) {
         if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
-            return 0.0;
+            return 0.2;
         }
         return weatherResponse.getDaily().get(0).getWindSpeed();
     }

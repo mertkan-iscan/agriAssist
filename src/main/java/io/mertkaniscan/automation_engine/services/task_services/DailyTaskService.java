@@ -135,6 +135,9 @@ public class DailyTaskService {
     private void updateExistingDayRecord(Field field, Day day) {
         int currentHourIndex = LocalDateTime.now().getHour();
 
+        calculateWaterVariables(day, field);
+        calculateWeatherVariables(day, field);
+
         for (int hourIndex = 0; hourIndex < 24; hourIndex++) {
 
             int finalHourIndex = hourIndex;
@@ -180,8 +183,10 @@ public class DailyTaskService {
             SolarResponse solarResponse;
 
             if (hourIndex == 0) {
+
                 previousHourTimestamp = Timestamp.valueOf(LocalDate.now().minusDays(1).atTime(23, 0));
                 Day previousDay = dayRepository.findByPlant_PlantIDAndDate(field.getPlantInField().getPlantID(), previousHourTimestamp);
+
                 if (previousDay != null) {
                     weatherResponse = previousDay.getWeatherResponse();
                     solarResponse = previousDay.getSolarResponse();
@@ -189,6 +194,7 @@ public class DailyTaskService {
                     log.warn("Previous day data not found for plantID={} at date={}. Skipping calculations.", field.getPlantInField().getPlantID(), previousHourTimestamp);
                     return;
                 }
+
             } else {
                 previousHourTimestamp = Timestamp.valueOf(LocalDate.now().atTime(hourIndex - 1, 0));
                 weatherResponse = day.getWeatherResponse();
@@ -204,8 +210,11 @@ public class DailyTaskService {
 
                     hour.setSensorTemperature(meanTemperature);
                     hour.setSensorHumidity(meanHumidity);
+
                     double eto = eToCalculatorService.calculateSensorEToHourly(meanTemperature, meanHumidity, weatherResponse, solarResponse, field, hourIndex);
+
                     hour.setSensorEToHourly(eto);
+                    log.info("sensor eto is: {} ", hour.getSensorEToHourly());
 
                 } else {
                     log.warn("Sensor data is missing for hourIndex={} in Day ID={}. Skipping sensor-based calculations.", hourIndex, day.getDayID());
@@ -265,6 +274,7 @@ public class DailyTaskService {
             if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
 
             }else if (field.getFieldType() == Field.FieldType.OUTDOOR) {
+
                 WeatherResponse weather = fieldService.getWeatherDataByFieldId(field.getFieldID());
                 SolarResponse solar = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
 
@@ -282,8 +292,8 @@ public class DailyTaskService {
 
     private void calculateWaterVariables(Day day, Field field) {
         try {
-            Double TAW = calculatorService.calculateSensorTAW(field, 10);
-            Double TEW = calculatorService.calculateSensorTEW(field, 10);
+            Double TAW = calculatorService.calculateSensorTAW(field, 120);
+            Double TEW = calculatorService.calculateSensorTEW(field, 120);
             Double RAW = calculatorService.calculateSensorRAW(TAW != null ? TAW : 0.0, field);
             Double REW = calculatorService.calculateSensorREW(TEW != null ? TEW : 0.0, field);
 
@@ -291,6 +301,21 @@ public class DailyTaskService {
             day.setTEWValueDaily(TEW != null ? TEW : 0.0);
             day.setRAWValueDaily(RAW != null ? RAW : 0.0);
             day.setREWValueDaily(REW != null ? REW : 0.0);
+
+        } catch (Exception e) {
+            log.error("Error calculating water variables for Day ID={}: {}", day.getDayID(), e.getMessage(), e);
+        }
+    }
+
+    private void calculateWeatherVariables(Day day, Field field) {
+        try {
+            WeatherResponse weatherResponse = day.getWeatherResponse();
+            SolarResponse solarResponse = day.getSolarResponse();
+
+            Plant plant = field.getPlantInField();
+
+            Double guessedEto = eToCalculatorService.calculateEToDaily(weatherResponse, solarResponse, plant.getField());
+            day.setGuessedEtoDaily(guessedEto);
 
         } catch (Exception e) {
             log.error("Error calculating water variables for Day ID={}: {}", day.getDayID(), e.getMessage(), e);

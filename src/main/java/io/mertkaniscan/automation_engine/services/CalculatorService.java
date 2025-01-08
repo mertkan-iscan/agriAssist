@@ -61,10 +61,11 @@ public class CalculatorService {
         return result;
     }
 
-    public Double calculateKe(Hour hour, Field field) {
+    public Double calculateKe(Hour hour, Field field, double fw, double Kr) {
         log.info("Calculating Ke for field: {}", field.getFieldID());
 
         double KcbAdjusted = field.getPlantInField().getCurrentKcValue();
+        log.info("KcbAdjusted: {}", KcbAdjusted);
 
         Double humidity = hour.getSensorHumidity() == null ? field.getCurrentValues().getSensorHumidity() : hour.getSensorHumidity();
 
@@ -83,15 +84,15 @@ public class CalculatorService {
 
             windSpeed = 0.0;
         }else{
+
             windSpeed = field.getCurrentValues().getForecastWindSpeed();
         }
 
         double KcMax = Calculators.calculateKcMax(KcbAdjusted, humidity, windSpeed);
-        double Kr = calculateSensorKr(hour, field);
-        double fw = hour.getIrrigationWetArea() + hour.getRainWetArea();
 
         Double result = Calculators.calculateKe(Kr, fw, KcMax, KcbAdjusted);
         log.info("Ke calculated: {}", result);
+
         return result;
     }
 

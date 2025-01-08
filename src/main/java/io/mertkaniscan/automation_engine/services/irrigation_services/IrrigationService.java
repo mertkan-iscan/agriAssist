@@ -222,11 +222,9 @@ public class IrrigationService {
             LocalDateTime irrigationEndTime = request.getIrrigationEndTime();
 
             double irrigationWaterAmountLiter = request.getTotalWaterAmount();
-            double infiltrationRateCmH = request.getField().getInfiltrationRate();
-            double wetArea = irrigationWaterAmountLiter / (10 * infiltrationRateCmH);
             Plant plant = request.getField().getPlantInField();
 
-            saveIrrigationforHour(plant, irrigationStartTime, irrigationEndTime, irrigationWaterAmountLiter, wetArea);
+            saveIrrigationforHour(plant, irrigationStartTime, irrigationEndTime, irrigationWaterAmountLiter);
 
             System.out.println("Irrigation started for field ID: " + fieldId);
 
@@ -346,19 +344,16 @@ public class IrrigationService {
 
                     long totalIrrigationSeconds = Duration.between(irrigationStartTime, irrigationEndTime).getSeconds();
                     double totalWaterAmount = request.getTotalWaterAmount();
-                    double totalWetArea = totalWaterAmount / (10 * field.getInfiltrationRate());
 
                     double recalculatedWaterAmount = (totalWaterAmount * overlapSeconds) / totalIrrigationSeconds;
-                    double recalculatedWetArea = (totalWetArea * overlapSeconds) / totalIrrigationSeconds;
 
                     hour.setIrrigationAmount(recalculatedWaterAmount);
-                    hour.setIrrigationWetArea(recalculatedWetArea);
+
                     hour.setLastUpdated(LocalDateTime.now());
 
                 } else if (hourStart.isAfter(now)) {
 
                     hour.setIrrigationAmount(null);
-                    hour.setIrrigationWetArea(null);
                     hour.setLastUpdated(LocalDateTime.now());
                 }
             }
@@ -395,7 +390,7 @@ public class IrrigationService {
 
 
     @Transactional
-    public void saveIrrigationforHour(Plant plant, LocalDateTime irrigationStartTime, LocalDateTime irrigationEndTime, double irrigationWaterAmountLiter, double wetAreaPerHour) {
+    public void saveIrrigationforHour(Plant plant, LocalDateTime irrigationStartTime, LocalDateTime irrigationEndTime, double irrigationWaterAmountLiter) {
         // Get the Day record for the plant and date
         Day day = dayRepository.findByPlant_PlantIDAndDateWithHours(plant.getPlantID(), Timestamp.valueOf(irrigationStartTime.toLocalDate().atStartOfDay()));
 
@@ -406,7 +401,6 @@ public class IrrigationService {
         // Calculate total irrigation duration in minutes
         long totalDurationMinutes = Duration.between(irrigationStartTime, irrigationEndTime).toMinutes();
 
-        double cumulativeWetArea = 0.0; // To accumulate wet area over hours
 
         // Find all intersecting hours
         for (Hour hour : day.getHours()) {
@@ -422,12 +416,8 @@ public class IrrigationService {
             LocalDateTime overlapEnd = irrigationEndTime.isBefore(hourEnd) ? irrigationEndTime : hourEnd;
             long overlapMinutes = Duration.between(overlapStart, overlapEnd).toMinutes();
 
-            // Calculate water amount and wet area for the overlapping duration
+            // Calculate water amount for the overlapping duration
             double overlapWaterAmount = (irrigationWaterAmountLiter * overlapMinutes) / totalDurationMinutes;
-            double overlapWetArea = (wetAreaPerHour * overlapMinutes) / totalDurationMinutes;
-
-            // Accumulate the wet area
-            cumulativeWetArea += overlapWetArea;
 
             // Update the Hour record
             if (hour.getIrrigationAmount() == null) {
@@ -435,9 +425,6 @@ public class IrrigationService {
             } else {
                 hour.setIrrigationAmount(hour.getIrrigationAmount() + overlapWaterAmount);
             }
-
-            // Set the cumulative wet area
-            hour.setIrrigationWetArea(cumulativeWetArea);
 
             hour.setLastUpdated(LocalDateTime.now());
         }

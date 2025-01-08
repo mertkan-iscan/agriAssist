@@ -72,16 +72,28 @@ public class Calculators {
     }
 
     public static double calculateKcMax(double Kcb, double humidity, double windSpeed) {
+        // Başlangıç değeri
         double KcMaxBase = Kcb + 0.05;
 
-        if (humidity < 40 || windSpeed > 5) {
+        // Rüzgar ve nem etkileri
+        double windEffect = 0.0;
+        double humidityEffect = 0.0;
 
-            double windEffect = 0.04 * (windSpeed - 2);
-            double humidityEffect = -0.004 * (humidity - 45);
-            return KcMaxBase + windEffect + humidityEffect;
+        if (windSpeed > 2) { // Rüzgar hızı etkisi 2 m/s üzerindeyse
+            windEffect = 0.04 * (windSpeed - 2);
         }
 
-        return KcMaxBase;
+        if (humidity < 45) { // Nem etkisi 45%'in altındaysa
+            humidityEffect = -0.004 * (humidity - 45);
+        }
+
+        // KcMax hesaplama
+        double KcMax = KcMaxBase + windEffect + humidityEffect;
+
+        // Mantıksal sınırlar
+        KcMax = Math.max(0.8, Math.min(1.4, KcMax)); // KcMax değeri [0.8, 1.4] arasında sınırlandırılır
+
+        return KcMax;
     }
 
     public static double calculateKcbAdjusted(double Kcb, double humidity, double windSpeed, double plantHeight) {

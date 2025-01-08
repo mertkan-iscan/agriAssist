@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -107,63 +109,65 @@ public class HourlyTaskService {
     }
 
     private void setPreviousHourValues(@NotNull Hour previousHour, Field field) {
-
         try {
+            // Fetch weather data for the field
             WeatherResponse freshWeatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
 
             Double oneHourRain = null;
             if (freshWeatherResponse != null) {
-                if (freshWeatherResponse.getCurrent() != null) {
-                    if (freshWeatherResponse.getCurrent().getRain() != null) {
-                        oneHourRain = freshWeatherResponse.getCurrent().getRain().getOneHour();
-                        log.info("Rain data fetched successfully for field ID {}: {} mm", field.getFieldID(), oneHourRain);
-                    } else {
-                        log.info("Rain data is not available for field ID {}.", field.getFieldID());
-                    }
+                if (freshWeatherResponse.getCurrent() != null && freshWeatherResponse.getCurrent().getRain() != null) {
+                    oneHourRain = freshWeatherResponse.getCurrent().getRain().getOneHour();
+                    log.info("Rain data fetched successfully for field ID {}: {} mm", field.getFieldID(), oneHourRain);
                 } else {
-                    log.info("Current weather data is not available for field ID {}.", field.getFieldID());
+                    log.info("Rain data is not available for field ID {}.", field.getFieldID());
                 }
             } else {
                 log.info("Weather response is null for field ID {}.", field.getFieldID());
             }
 
-            if(oneHourRain != null){
+            // Skip precipitation for GREENHOUSE fields
+            if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
 
-                previousHour.setHappenedPrecipitation(oneHourRain);
-                previousHour.setRainWetArea(1.0);
-            }else{
-
+                log.info("Skipping precipitation calculations for GREENHOUSE field: {}", field.getFieldName());
                 previousHour.setHappenedPrecipitation(0.0);
-
                 previousHour.setRainWetArea(0.0);
+
+            } else if (field.getFieldType() == Field.FieldType.OUTDOOR) {
+
+                if (oneHourRain != null) {
+
+                    previousHour.setHappenedPrecipitation(oneHourRain);
+                    previousHour.setRainWetArea(1.0);
+                } else {
+                    previousHour.setHappenedPrecipitation(0.0);
+                    previousHour.setRainWetArea(0.0);
+                }
             }
 
             Double previousHourRainWetArea = previousHour.getRainWetArea();
-
             Double previousHourIrrigationWetArea = previousHour.getIrrigationWetArea();
-            if(previousHourIrrigationWetArea == null) {
+            if (previousHourIrrigationWetArea == null) {
                 previousHourIrrigationWetArea = 0.0;
             }
 
-            Double totalWetArea = (previousHourRainWetArea + previousHourIrrigationWetArea) / 2;
+            Double totalWetArea = Math.max(previousHourRainWetArea, previousHourIrrigationWetArea);
 
+            // Perform calculations for field properties
             double fieldWiltingPoint = field.getWiltingPoint();
             double fieldCapacity = field.getFieldCapacity();
-
             Double TEW = previousHour.getTEWValueHourly();
             double soilMoisture = (TEW * 100) / (field.getMaxEvaporationDepth() * 1000);
             Double sensorREWValue = previousHour.getREWValueHourly();
 
             double Kr = Calculators.calculateSensorKr(sensorREWValue, soilMoisture, fieldCapacity, fieldWiltingPoint);
-
             Plant plant = field.getPlantInField();
             double Kcb = plant.getCurrentKcValue();
-            double Kcmax = Calculators.calculateKcMax(Kcb, previousHour.getSensorHumidity(),previousHour.getWindSpeed(field.getFieldType()));
+            double Kcmax = Calculators.calculateKcMax(Kcb, previousHour.getSensorHumidity(), previousHour.getWindSpeed(field.getFieldType()));
 
             Double Ke = Calculators.calculateKe(Kr, totalWetArea, Kcmax, Kcb);
 
             previousHour.setKrValue(Kr);
-            previousHour.setKeValue(Ke);
+            //previousHour.setKeValue(Ke);
             previousHour.setKcMaxValue(Kcmax);
 
             previousHour.setLastUpdated(LocalDateTime.now());
@@ -178,15 +182,9 @@ public class HourlyTaskService {
 
     private void setHourWeatherValues(Hour currentHour, Hour previousHour, Field field) {
         try {
-            if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
-
-            } else if (field.getFieldType() == Field.FieldType.OUTDOOR) {
-
-            }
-
-
             int hourIndex = currentHour.getHourIndex();
 
+            // Fetch weather data for the field
             WeatherResponse weatherResponse = weatherForecastService.getWeatherDataObj(
                     field.getLatitude(),
                     field.getLongitude()
@@ -194,32 +192,35 @@ public class HourlyTaskService {
 
             Timestamp currentHourTimestamp = currentHour.getTimestamp();
             Timestamp previousHourTimestamp = previousHour.getTimestamp();
-            System.out.println("currentHourTimestamp: " + currentHourTimestamp);
 
+            // Fetch sensor data
             Double meanTemperature = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_temp", previousHourTimestamp, currentHourTimestamp);
             Double meanHumidity = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_hum", previousHourTimestamp, currentHourTimestamp);
-            log.info("mean temperature: {}", meanTemperature);
-            log.info("mean humidity: {}", meanHumidity);
+
+            log.info("Mean temperature: {}", meanTemperature);
+            log.info("Mean humidity: {}", meanHumidity);
 
             SolarResponse solarResponse = currentHour.getDay().getSolarResponse();
-
             if (solarResponse == null) {
                 throw new RuntimeException("Solar data is missing in the Day record for field: " + field.getFieldName());
             }
 
+            // Calculate ETo values
             double sensorEToHourly = eToCalculatorService.calculateSensorEToHourly(
                     meanTemperature,
                     meanHumidity,
                     weatherResponse,
                     solarResponse,
                     field,
-                    hourIndex);
+                    hourIndex
+            );
 
             double currentEToHourly = eToCalculatorService.calculateCurrentEToHourly(
                     weatherResponse,
                     solarResponse,
                     field,
-                    hourIndex);
+                    hourIndex
+            );
 
             currentHour.setForecastEToHourly(currentEToHourly);
             currentHour.setSensorEToHourly(sensorEToHourly);
@@ -233,19 +234,25 @@ public class HourlyTaskService {
             currentHour.setSensorHumidity(meanHumidity);
 
             currentHour.setSolarRadiation(
-                    eToCalculatorService.calculateSolarRadiationHourly(weatherResponse, solarResponse, hourIndex));
+                    eToCalculatorService.calculateSolarRadiationHourly(weatherResponse, solarResponse, hourIndex)
+            );
 
-            WeatherResponse.Rain rain = weatherResponse.getCurrent().getRain();
-            if (rain != null && rain.getOneHour() != null) {
-                //currentHour.setHappenedPrecipitation(rain.getOneHour());
-            } else {
-                //currentHour.setHappenedPrecipitation(0.0);
+            // Skip precipitation for GREENHOUSE fields
+            if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
+                log.info("Skipping precipitation calculations for GREENHOUSE field: {}", field.getFieldName());
+                currentHour.setHappenedPrecipitation(0.0);
+            } else if (field.getFieldType() == Field.FieldType.OUTDOOR) {
+                WeatherResponse.Rain rain = weatherResponse.getCurrent().getRain();
+                if (rain != null && rain.getOneHour() != null) {
+                    currentHour.setHappenedPrecipitation(rain.getOneHour());
+                } else {
+                    currentHour.setHappenedPrecipitation(0.0);
+                }
             }
 
             dayRepository.save(currentHour.getDay());
 
             log.info("Updated hourly record for hour={} in field '{}'.", hourIndex, field.getFieldName());
-
         } catch (Exception e) {
             log.error("Failed to update Hour record for field '{}'. Error: {}", field.getFieldName(), e.getMessage(), e);
         }
@@ -269,9 +276,13 @@ public class HourlyTaskService {
             Double RAW = calculatorService.calculateSensorRAW(TAW, field);
             Double REW = calculatorService.calculateSensorREW(TEW, field);
 
-            //Double Kr = calculatorService.calculateSensorKr(field, TEW, REW);
+            //calculate wet area fraction
+            double fw = Math.min(1.0, REW / TEW);
+            log.info("Wet area fraction for field '{}' is {}.", field.getFieldName(), fw);
 
-            //Double Ke = calculatorService.calculateKe(currentHour, field);
+            Double Kr = calculatorService.calculateSensorKr(field, TEW, REW);
+
+            Double Ke = calculatorService.calculateKe(currentHour, field, fw, Kr);
 
             Day today = dayRepository.findByPlant_PlantIDAndDateWithHours(
                     field.getPlantInField().getPlantID(),
@@ -289,7 +300,8 @@ public class HourlyTaskService {
             currentHour.setRAWValueHourly(RAW);
             currentHour.setREWValueHourly(REW);
 
-            //currentHour.setKrValue(Kr);
+            currentHour.setKrValue(Kr);
+            currentHour.setKeValue(Ke);
 
             dayRepository.save(currentHour.getDay());
 
@@ -331,7 +343,7 @@ public class HourlyTaskService {
             Double previousHourIrrigationAmount = previousHour.getIrrigationAmount() == null ? 0.0 : previousHour.getIrrigationAmount();
             Double previousHourSensorEToHourly = previousHour.getSensorEToHourly();
             Double previousHourKeValue = previousHour.getKeValue();
-            Double previousHourKcbAdjustedValue = previousHour.getKcbAdjustedValue();
+            Double previousHourKcbAdjustedValue = previousHour.getCalculatedKcbAdjusted();
             Double currentHourRAWValueHourly = currentHour.getRAWValueHourly();
 
 
@@ -351,7 +363,20 @@ public class HourlyTaskService {
                     previousHourSensorEToHourly == null ||
                     previousHourKeValue == null ||
                     previousHourKcbAdjustedValue == null) {
-                log.warn("One or more values from previous hour are null for field '{}'. Skipping.", field.getFieldName());
+
+                List<String> missingValues = new ArrayList<>();
+
+                if (previousHourRAWValueHourly == null) missingValues.add("previousHourRAWValueHourly");
+                if (previousHourHappenedPrecipitation == null) missingValues.add("previousHourHappenedPrecipitation");
+                if (previousHourIrrigationAmount == null) missingValues.add("previousHourIrrigationAmount");
+                if (previousHourSensorEToHourly == null) missingValues.add("previousHourSensorEToHourly");
+                if (previousHourKeValue == null) missingValues.add("previousHourKeValue");
+                if (previousHourKcbAdjustedValue == null) missingValues.add("previousHourKcbAdjustedValue");
+
+                log.warn("One or more values from the previous hour are null for field '{}': {}. Skipping.",
+                        field.getFieldName(),
+                        String.join(", ", missingValues));
+
                 return;
             }
 
@@ -362,15 +387,13 @@ public class HourlyTaskService {
 
             double currentHourKcbAdjusted =
                     (previousHourRAWValueHourly
-                            + previousHourHappenedPrecipitation
-                            + previousHourIrrigationAmount
                             - currentHourRAWValueHourly
                             - (previousHourKeValue * previousHourSensorEToHourly))
                             / previousHourSensorEToHourly;
 
             log.debug("Calculated currentHourKcbAdjusted: {}", currentHourKcbAdjusted);
 
-            currentHour.setKcbAdjustedValue(currentHourKcbAdjusted);
+            currentHour.setCalculatedKcbAdjusted(currentHourKcbAdjusted);
 
             dayRepository.save(currentHour.getDay());
 
