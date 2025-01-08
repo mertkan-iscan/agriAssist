@@ -154,22 +154,6 @@ public class FieldApiController {
         }
     }
 
-    @PostMapping("/{fieldID}/control-actuator")
-    public ResponseEntity<String> controlActuator(
-            @PathVariable int fieldID,
-            @RequestParam int deviceID,
-            @RequestParam double flowRate) {
-
-        try {
-            String response = fieldService.controlActuatorByFlowRate(fieldID, deviceID, flowRate);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to control actuator: " + e.getMessage());
-        }
-    }
-
     @PostMapping("/{fieldID}/control-actuator-test")
     public ResponseEntity<String> controlActuatorTest(
             @PathVariable int fieldID,
@@ -177,30 +161,14 @@ public class FieldApiController {
             @RequestParam int degree) {
 
         try {
+
             String response = fieldService.controlActuator(fieldID, deviceID, degree);
             return ResponseEntity.ok(response);
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to control actuator: " + e.getMessage());
-        }
-    }
-
-    @PostMapping("/{fieldID}/calibrate-device")
-    public ResponseEntity<String> addCalibration(
-            @PathVariable int fieldID,
-            @RequestParam int deviceID,
-            @RequestParam int degree,
-            @RequestParam double flowRate) {
-
-        try {
-
-            deviceService.addCalibration(deviceID, degree, flowRate);
-
-            return ResponseEntity.ok("Calibration data added successfully.");
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add calibration data: " + e.getMessage());
         }
     }
 }

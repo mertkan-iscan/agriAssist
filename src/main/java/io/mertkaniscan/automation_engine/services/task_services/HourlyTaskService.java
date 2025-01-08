@@ -335,8 +335,6 @@ public class HourlyTaskService {
             Double currentHourRAWValueHourly = currentHour.getRAWValueHourly();
 
 
-
-
             log.debug("Calculating KcbAdjusted for field '{}':", field.getFieldName());
             log.debug("previousHourRAWValueHourly: {}", previousHourRAWValueHourly);
             log.debug("previousHourHappenedPrecipitation: {}", previousHourHappenedPrecipitation);

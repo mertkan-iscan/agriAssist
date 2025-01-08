@@ -1,5 +1,6 @@
 package io.mertkaniscan.automation_engine.services.device_services;
 
+import io.mertkaniscan.automation_engine.utils.SensorReadingConverter;
 import io.mertkaniscan.automation_engine.utils.config_loader.DeviceCommandConfigLoader;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,11 +31,13 @@ public class ActuatorCommandSocketService {
     private final DeviceLockManager deviceLockManager;
     private final DeviceService deviceService;
     private final DeviceCommandConfigLoader deviceCommandConfigLoader;
+    private final SensorReadingConverter sensorReadingConverter;
 
-    public ActuatorCommandSocketService(DeviceLockManager deviceLockManager, DeviceService deviceService, DeviceCommandConfigLoader deviceCommandConfigLoader) {
+    public ActuatorCommandSocketService(DeviceLockManager deviceLockManager, DeviceService deviceService, DeviceCommandConfigLoader deviceCommandConfigLoader, SensorReadingConverter sensorReadingConverter) {
         this.deviceLockManager = deviceLockManager;
         this.deviceService = deviceService;
         this.deviceCommandConfigLoader = deviceCommandConfigLoader;
+        this.sensorReadingConverter = sensorReadingConverter;
     }
 
     public String sendActuatorCommand(int deviceID, int degree) throws Exception {
@@ -122,22 +125,21 @@ public class ActuatorCommandSocketService {
 
             log.info("Locking actuator with ID: {} for opening", actuator.getDeviceID());
 
-
             sendActuatorCommand(actuator.getDeviceID(), degree);
-
         }
     }
 
     @NotNull
-    private static Integer getCalibrationValue(double flowRate, Device actuator) throws Exception {
-        Map<Double, Integer> calibrationMap = actuator.getCalibrationMap();
+    private Integer getCalibrationValue(double flowRate, Device actuator) throws Exception {
+        Map<String, Integer> calibrationMap = actuator.getCalibrationPolynomial();
 
         if (calibrationMap == null || calibrationMap.isEmpty()) {
             throw new Exception("Calibration map is missing or empty for actuator ID: " + actuator.getDeviceID());
         }
 
         // Find the corresponding degree for the requested flow rate
-        Integer degree = calibrationMap.get(flowRate);
+        Integer degree = sensorReadingConverter.convertFlowRate(flowRate, calibrationMap, actuator.getMinFlowRate(), actuator.getMaxFlowRate());
+
         if (degree == null) {
             throw new Exception("Flow rate " + flowRate + " is not calibrated for actuator ID: " + actuator.getDeviceID());
         }

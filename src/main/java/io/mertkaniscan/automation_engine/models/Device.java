@@ -63,6 +63,12 @@ public class Device {
     @Column(columnDefinition = "TEXT")
     private String calibrationData;
 
+    @Column
+    private Double minFlowRate;
+
+    @Column
+    private Double maxFlowRate;
+
     @ManyToOne
     @JoinColumn(name = "fieldID", nullable = false)
     @JsonBackReference("field-devices")
@@ -89,6 +95,7 @@ public class Device {
         this.deviceModel = deviceModel;
         this.deviceIp = deviceIp;
         this.deviceType = deviceType;
+        if(deviceType.equalsIgnoreCase("actuator")){this.minFlowRate = 0.0; this.maxFlowRate = 4.0;}
         if(deviceType.equalsIgnoreCase("sensor")){setDefaultCalibrationPolynomial();}
     }
 
@@ -113,9 +120,11 @@ public class Device {
 
     @Transient
     public Map<Double, Integer> getCalibrationMap() {
+
         if (calibrationData == null || calibrationData.isEmpty()) {
             return new HashMap<>();
         }
+
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             return objectMapper.readValue(calibrationData, new TypeReference<Map<Double, Integer>>() {});
@@ -125,20 +134,12 @@ public class Device {
     }
 
     @Transient
-    public void setCalibrationMap(Map<Double, Integer> calibrationMap) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            this.calibrationData = objectMapper.writeValueAsString(calibrationMap);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize calibration data for device ID " + this.deviceID, e);
-        }
-    }
-
-    @Transient
     public Map<String, Integer> getCalibrationPolynomial() {
+
         if (calibrationData == null || calibrationData.isEmpty()) {
             return new HashMap<>();
         }
+
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             return objectMapper.readValue(calibrationData, new TypeReference<Map<String, Integer>>() {});
@@ -149,6 +150,7 @@ public class Device {
 
     @Transient
     public void setCalibrationPolynomial(Map<String, Integer> polynomial) {
+
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             this.calibrationData = objectMapper.writeValueAsString(polynomial);
@@ -161,9 +163,9 @@ public class Device {
         if (this.calibrationData == null || this.calibrationData.isEmpty()) {
             Map<String, Integer> defaultPolynomial = new HashMap<>();
             defaultPolynomial.put("6.308", 0);
-            defaultPolynomial.put("0.05018", 1);
-            defaultPolynomial.put("-0.00003893", 2);
-            defaultPolynomial.put("0.000000009413", 3);
+            defaultPolynomial.put("5.01767183e-02", 1);
+            defaultPolynomial.put("-3.89347239e-05", 2);
+            defaultPolynomial.put("9.41322427e-09", 3);
             setCalibrationPolynomial(defaultPolynomial);
         }
     }

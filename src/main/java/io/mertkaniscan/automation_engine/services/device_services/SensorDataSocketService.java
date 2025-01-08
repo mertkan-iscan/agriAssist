@@ -35,14 +35,16 @@ public class SensorDataSocketService {
     private final SensorConfigService sensorConfigService;
     private final DeviceCommandConfigLoader deviceCommandConfigLoader;
     private final DeviceLockManager deviceLockManager;
+    private final SensorReadingConverter sensorReadingConverter;
 
     public SensorDataSocketService(DeviceService deviceService,
                                    SensorConfigService sensorConfigService,
-                                   DeviceCommandConfigLoader deviceCommandConfigLoader, DeviceLockManager deviceLockManager) {
+                                   DeviceCommandConfigLoader deviceCommandConfigLoader, DeviceLockManager deviceLockManager, SensorReadingConverter sensorReadingConverter) {
         this.deviceService = deviceService;
         this.sensorConfigService = sensorConfigService;
         this.deviceCommandConfigLoader = deviceCommandConfigLoader;
         this.deviceLockManager = deviceLockManager;
+        this.sensorReadingConverter = sensorReadingConverter;
     }
 
     public <T> List<T> fetchSensorData(int deviceID, DataParser<T> parser) throws Exception {
@@ -207,7 +209,7 @@ public class SensorDataSocketService {
                     // Apply soil moisture conversion for specific data types
                     if ("soil_moisture".equalsIgnoreCase(sensorDataGroup)) {
 
-                        double convertedValue = SensorReadingConverter.convertSoilMoistureReading((int)dataValue, device.getCalibrationPolynomial());
+                        double convertedValue = sensorReadingConverter.convertSoilMoistureReading((int)dataValue, device.getCalibrationPolynomial());
 
                         log.info("converted soil moisture value: {}", convertedValue);
                         sensorData.getDataValues().put(expectedDataType, convertedValue);

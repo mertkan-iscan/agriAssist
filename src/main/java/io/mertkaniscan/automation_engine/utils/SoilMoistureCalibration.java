@@ -164,8 +164,12 @@ public class SoilMoistureCalibration {
 
     public static void main(String[] args) {
 
-        double[] sensorReadings = {4095, 4095, 4095, 3724, 3290, 2407, 1778, 1582, 1330, 1120, 1045, 948, 883, 784, 816, 759, 800};
-        double[] moisturePercentages = {0, 6.67, 13.33, 20, 23.33, 26.67, 33.33, 40, 46.67, 53.33, 60, 66.67, 73.33, 80, 86.67, 93.33, 100};
+//        double[] sensorReadings = {4095, 4095, 4095, 3724, 3290, 2407, 1778, 1582, 1330, 1120, 1045, 948, 883, 784, 816, 759, 800};
+//        double[] moisturePercentages = {0, 6.67, 13.33, 20, 23.33, 26.67, 33.33, 40, 46.67, 53.33, 60, 66.67, 73.33, 80, 86.67, 93.33, 100};
+
+        double[] sensorReadings = {90, 80, 70, 60, 50, 0, 30, 20, 10, 0};
+        double[] moisturePercentages = {4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5, 0, 0};
+
 
         CalibrationData data = new CalibrationData(sensorReadings, moisturePercentages);
         CalibrationResult result = soilMoistureCalibration(data);

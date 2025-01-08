@@ -160,11 +160,13 @@ public class FieldService {
         return devices.stream()
                 .filter(device -> device.getDeviceModel().equalsIgnoreCase(sensorModel))
                 .map(device -> {
+
                     try {
                         return sensorDataSocketService.fetchSensorDataValue(device.getDeviceID());
                     } catch (Exception e) {
                         throw new RuntimeException("Error fetching sensor data for device ID: " + device.getDeviceID(), e);
                     }
+
                 })
                 .flatMap(List::stream)
                 .collect(Collectors.toList());
@@ -203,7 +205,6 @@ public class FieldService {
             throw new IllegalArgumentException("Device with ID " + deviceId + " not found in field with ID " + fieldId);
         }
 
-        // Kalibrasyon verilerini al
         Map<Double, Integer> calibrationMap = device.getCalibrationMap();
         Integer degree = calibrationMap.get(flowRate);
 
@@ -212,27 +213,11 @@ public class FieldService {
         }
 
         try {
+
             return actuatorCommandSocketService.sendActuatorCommand(deviceId, degree);
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to control actuator with ID " + deviceId + ": " + e.getMessage(), e);
         }
-    }
-
-    public void calibrateDevice(int fieldID, int deviceID, int degree, double flowRate) {
-        Field field = getFieldById(fieldID);
-        if (field == null) {
-            throw new IllegalArgumentException("Field with ID " + fieldID + " not found.");
-        }
-
-        Device device = deviceService.getDeviceById(deviceID);
-        if (device == null || !field.getDevices().contains(device)) {
-            throw new IllegalArgumentException("Device with ID " + deviceID + " not found in field with ID " + fieldID);
-        }
-
-        Map<Double, Integer> calibrationMap = device.getCalibrationMap();
-        calibrationMap.put(flowRate, degree);
-        device.setCalibrationMap(calibrationMap);
-
-        deviceService.saveDevice(device);
     }
 }

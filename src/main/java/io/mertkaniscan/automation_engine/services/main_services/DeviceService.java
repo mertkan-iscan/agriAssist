@@ -76,22 +76,4 @@ public class DeviceService {
             deviceRepository.save(device);
         }
     }
-
-    public void addCalibration(int deviceID, int degree, double flowRate) {
-        Device device = getDeviceById(deviceID);
-        if (device == null) {
-            throw new IllegalArgumentException("Device not found with ID: " + deviceID);
-        }
-
-        Map<Double, Integer> calibrationMap = device.getCalibrationMap();
-
-        if (calibrationMap == null) {
-            calibrationMap = new HashMap<>();
-        }
-
-        calibrationMap.put(flowRate, degree);
-        device.setCalibrationMap(calibrationMap);
-
-        deviceRepository.save(device);
-    }
 }

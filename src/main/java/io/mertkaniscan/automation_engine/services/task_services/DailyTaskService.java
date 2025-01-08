@@ -173,13 +173,30 @@ public class DailyTaskService {
 
     private void updatePastHourData(Hour hour, Field field, int hourIndex, Day day) {
         try {
-
-            Timestamp previousHourTimestamp = Timestamp.valueOf(LocalDate.now().atTime(hourIndex-1, 0));
+            Timestamp previousHourTimestamp;
             Timestamp currentHourTimestamp = hour.getTimestamp();
 
+            WeatherResponse weatherResponse;
+            SolarResponse solarResponse;
+
+            if (hourIndex == 0) {
+                previousHourTimestamp = Timestamp.valueOf(LocalDate.now().minusDays(1).atTime(23, 0));
+                Day previousDay = dayRepository.findByPlant_PlantIDAndDate(field.getPlantInField().getPlantID(), previousHourTimestamp);
+                if (previousDay != null) {
+                    weatherResponse = previousDay.getWeatherResponse();
+                    solarResponse = previousDay.getSolarResponse();
+                } else {
+                    log.warn("Previous day data not found for plantID={} at date={}. Skipping calculations.", field.getPlantInField().getPlantID(), previousHourTimestamp);
+                    return;
+                }
+            } else {
+                previousHourTimestamp = Timestamp.valueOf(LocalDate.now().atTime(hourIndex - 1, 0));
+                weatherResponse = day.getWeatherResponse();
+                solarResponse = day.getSolarResponse();
+            }
 
             if (field.getFieldType() == Field.FieldType.GREENHOUSE) {
-                //use sensor data
+
                 Double meanTemperature = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_temp", previousHourTimestamp, currentHourTimestamp);
                 Double meanHumidity = sensorDataService.getMeanValueBetweenTimestamps(field.getFieldID(), "weather_hum", previousHourTimestamp, currentHourTimestamp);
 
@@ -187,18 +204,16 @@ public class DailyTaskService {
 
                     hour.setSensorTemperature(meanTemperature);
                     hour.setSensorHumidity(meanHumidity);
-                    double eto = eToCalculatorService.calculateSensorEToHourly(meanTemperature, meanHumidity, null, null, field, hourIndex);
+                    double eto = eToCalculatorService.calculateSensorEToHourly(meanTemperature, meanHumidity, weatherResponse, solarResponse, field, hourIndex);
                     hour.setSensorEToHourly(eto);
 
                 } else {
                     log.warn("Sensor data is missing for hourIndex={} in Day ID={}. Skipping sensor-based calculations.", hourIndex, day.getDayID());
                 }
             } else if (field.getFieldType() == Field.FieldType.OUTDOOR) {
-                //use forecast data
-                WeatherResponse freshWeatherResponse = fieldService.getWeatherDataByFieldId(field.getFieldID());
-                SolarResponse freshSolarResponse = fieldService.getSolarDataByFieldId(field.getFieldID(), LocalDate.now());
 
-                double eto = eToCalculatorService.calculateForecastEToHourly(freshWeatherResponse, freshSolarResponse, field, hourIndex);
+
+                double eto = eToCalculatorService.calculateForecastEToHourly(weatherResponse, solarResponse, field, hourIndex);
                 hour.setForecastEToHourly(eto);
             }
 

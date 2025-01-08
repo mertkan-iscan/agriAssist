@@ -128,6 +128,7 @@
     <p>No sensor devices found in this field.</p>
 </div>
 
+
 <h2>Actuators</h2>
 <div class="device-wrapper" th:if="${actuatorDevices != null}">
     <div class="device-container" th:each="device : ${actuatorDevices}">
@@ -137,20 +138,11 @@
         <div class="device-info">Device Status: <span th:text="${device.deviceStatus}"></span></div>
         <div class="device-info">Device Data Interval: <span th:text="${device.fetchInterval}"></span></div>
 
-        <!--
-        <div class="button-container">
-            <form th:action="@{/api/fields/{fieldID}/control-actuator-test(fieldID=${fieldID})}" method="post">
-                <input type="hidden" name="deviceID" th:value="${device.deviceID}" />
-                <label for="degree">Set Degree:</label>
-                <input type="number" name="degree" id="degree" min="0" max="95" required />
-                <button type="submit">Control Actuator</button>
-            </form>
-        </div>
-        -->
-
         <div class="button-container">
             <form th:id="'controlActuatorForm-' + ${device.deviceID}"
+
                   th:onsubmit="'controlActuator(event, ' + ${fieldID} + ', ' + ${device.deviceID} + ');'">
+
                 <label th:for="'degree-' + ${device.deviceID}">Set Degree:</label>
                 <input type="number" name="degree"
                        th:id="'degree-' + ${device.deviceID}"
@@ -167,11 +159,6 @@
             </form>
         </div>
 
-        <div class="button-container">
-            <form th:action="@{/fields/{fieldID}/devices/{deviceID}/calibration(fieldID=${fieldID}, deviceID=${device.deviceID})}" method="get">
-                <button type="submit" class="btn btn-primary">Add Calibration</button>
-            </form>
-        </div>
 
         <div th:id="'responseMessage-' + ${device.deviceID}" style="display: none; position: fixed; top: 20px; right: 20px; background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); z-index: 1000;">
             <span th:id="'responseText-' + ${device.deviceID}"></span>

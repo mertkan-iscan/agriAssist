@@ -1,22 +1,15 @@
 package io.mertkaniscan.automation_engine.utils;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.util.Map;
 
 @Slf4j
+@Component
 public class SensorReadingConverter {
 
-    /**
-     * Converts a soil moisture raw reading to a percentage using a calibration polynomial.
-     * The polynomial is represented as a Map<String, Integer>, where the key is the coefficient
-     * (possibly in scientific notation) and the value is the degree of the term.
-     *
-     * @param rawReading            The raw sensor reading (0-4095).
-     * @param calibrationPolynomial A Map representing the calibration polynomial.
-     *                              Example: {"6.308":0,"0.05018":1,"3.893e-05":2,"9.413e-09":3}
-     * @return The soil moisture percentage (0-100).
-     */
-    public static double convertSoilMoistureReading(int rawReading, Map<String, Integer> calibrationPolynomial) {
+    public double convertSoilMoistureReading(int rawReading, Map<String, Integer> calibrationPolynomial) {
         log.debug("Starting soil moisture conversion. Raw reading: {}, Calibration polynomial: {}",
                 rawReading, calibrationPolynomial);
 
@@ -54,5 +47,46 @@ public class SensorReadingConverter {
         log.debug("Final soil moisture percentage: {}", percentage);
 
         return percentage;
+    }
+
+
+    public int convertFlowRate(double requestedFlowRate, Map<String, Integer> calibrationPolynomial, double minFlowRate, double maxFlowRate) {
+
+        log.debug("Starting flow rate conversion. Raw reading: {}, Calibration polynomial: {}", requestedFlowRate, calibrationPolynomial);
+
+        // Validate flow rate boundaries
+        if (requestedFlowRate < minFlowRate || requestedFlowRate > maxFlowRate) {
+            log.error("Requested flow rate {} is out of bounds. Min: {}, Max: {}", requestedFlowRate, minFlowRate, maxFlowRate);
+            throw new IllegalArgumentException("Requested flow rate is out of acceptable range: " + minFlowRate + " to " + maxFlowRate);
+        }
+
+        // Validate calibration polynomial
+        if (calibrationPolynomial == null || calibrationPolynomial.isEmpty()) {
+            log.error("Calibration polynomial is null or empty.");
+            throw new IllegalArgumentException("Calibration polynomial cannot be null or empty.");
+        }
+
+        // Calculate the servoDegree using the polynomial
+        double servoDegree = 0.0;
+        for (Map.Entry<String, Integer> term : calibrationPolynomial.entrySet()) {
+
+            // Convert the coefficient from String (can be scientific notation) to double
+            double coefficient = Double.parseDouble(term.getKey());
+            int degree = term.getValue();
+            double termValue = coefficient * Math.pow(requestedFlowRate, degree);
+            servoDegree += termValue;
+
+            log.trace("Processed term: Coefficient: {}, Degree: {}, Term value: {}", coefficient, degree, termValue);
+        }
+
+        // Clamp the servoDegree between 0 and 90
+        servoDegree = Math.max(0, Math.min(servoDegree, 90));
+        log.debug("Final flow rate degree before conversion to int: {}", servoDegree);
+
+        // Convert to an integer
+        int servoDegreeInt = (int) Math.round(servoDegree);
+        log.debug("Final flow rate degree as int: {}", servoDegreeInt);
+
+        return servoDegreeInt;
     }
 }

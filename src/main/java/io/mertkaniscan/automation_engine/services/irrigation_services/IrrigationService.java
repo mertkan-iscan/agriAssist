@@ -140,8 +140,6 @@ public class IrrigationService {
             throw new IllegalStateException("An irrigation is already scheduled for this time period.");
         }
 
-
-
         if (request.getFlowRate() != null && request.getTotalWaterAmount() != null) {
 
             double durationInHours = request.getTotalWaterAmount() / request.getFlowRate();
@@ -158,8 +156,6 @@ public class IrrigationService {
             request.setFlowRate(flowRate);
 
         }
-
-
 
         // Set end time and status
         LocalDateTime endTime = request.getIrrigationStartTime().plusMinutes(request.getIrrigationDuration());
@@ -233,6 +229,7 @@ public class IrrigationService {
             saveIrrigationforHour(plant, irrigationStartTime, irrigationEndTime, irrigationWaterAmountLiter, wetArea);
 
             System.out.println("Irrigation started for field ID: " + fieldId);
+
         } catch (Exception e) {
             System.err.println("Failed to start irrigation for field ID: " +
                     request.getField().getFieldID() + ". Error: " + e.getMessage());
@@ -306,26 +303,70 @@ public class IrrigationService {
     }
 
     private void removeRemainingHourlyRecords(IrrigationRequest request) {
+
         Field field = request.getField();
         Plant plant = field.getPlantInField();
+        LocalDateTime irrigationStartTime = request.getIrrigationStartTime();
         LocalDateTime irrigationEndTime = request.getIrrigationEndTime();
+        LocalDateTime now = LocalDateTime.now();
 
         Day day = dayRepository.findByPlant_PlantIDAndDateWithHours(
-                plant.getPlantID(), Timestamp.valueOf(irrigationEndTime.toLocalDate().atStartOfDay())
+                plant.getPlantID(), Timestamp.valueOf(irrigationStartTime.toLocalDate().atStartOfDay())
         );
 
         if (day != null) {
-            for (Hour hour : day.getHours()) {
-                LocalDateTime hourStart = irrigationEndTime.toLocalDate().atStartOfDay().plusHours(hour.getHourIndex());
-                if (hourStart.isAfter(LocalDateTime.now())) {
+
+            int startHourIndex = irrigationStartTime.getHour();
+            int endHourIndex = Math.min(irrigationEndTime.getHour(), 23);
+
+            for (int hourIndex = startHourIndex; hourIndex <= endHourIndex; hourIndex++) {
+
+                int finalHourIndex = hourIndex;
+                Hour hour = day.getHours().stream()
+                        .filter(h -> h.getHourIndex() == finalHourIndex)
+                        .findFirst()
+                        .orElse(null);
+
+                if (hour == null) continue;
+
+                LocalDateTime hourStart = irrigationStartTime.toLocalDate().atStartOfDay().plusHours(hourIndex);
+                LocalDateTime hourEnd = hourStart.plusHours(1);
+
+                if (hourEnd.isBefore(now)) {
+                    continue;
+                }
+
+                if (hourStart.isBefore(now) && hourEnd.isAfter(now)) {
+                    LocalDateTime overlapStart = irrigationStartTime.isAfter(hourStart)
+                            ? irrigationStartTime
+                            : hourStart;
+                    LocalDateTime overlapEnd = now;
+                    long overlapSeconds = Duration.between(overlapStart, overlapEnd).getSeconds();
+
+
+                    long totalIrrigationSeconds = Duration.between(irrigationStartTime, irrigationEndTime).getSeconds();
+                    double totalWaterAmount = request.getTotalWaterAmount();
+                    double totalWetArea = totalWaterAmount / (10 * field.getInfiltrationRate());
+
+                    double recalculatedWaterAmount = (totalWaterAmount * overlapSeconds) / totalIrrigationSeconds;
+                    double recalculatedWetArea = (totalWetArea * overlapSeconds) / totalIrrigationSeconds;
+
+                    hour.setIrrigationAmount(recalculatedWaterAmount);
+                    hour.setIrrigationWetArea(recalculatedWetArea);
+                    hour.setLastUpdated(LocalDateTime.now());
+
+                } else if (hourStart.isAfter(now)) {
+
                     hour.setIrrigationAmount(null);
                     hour.setIrrigationWetArea(null);
                     hour.setLastUpdated(LocalDateTime.now());
                 }
             }
+
             dayRepository.save(day);
         }
     }
+
 
     public List<IrrigationRequest> getIrrigationHistory(int fieldId) {
         return irrigationRepository.findByFieldFieldID(fieldId);
@@ -404,5 +445,4 @@ public class IrrigationService {
         // Save the updated Day record
         dayRepository.save(day);
     }
-
 }
